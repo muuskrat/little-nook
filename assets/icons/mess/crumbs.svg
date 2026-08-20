@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — crumbs mess (leftover food). -->
+  <g fill="#D9A066" stroke="#4A4038" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M18 20 L22 18 L24 22 L20 25 Z"/>
+    <path d="M28 24 L32 23 L33 27 L29 29 Z"/>
+    <path d="M21 30 L24 29 L25 32 L22 34 Z"/>
+    <path d="M14 27 L16.5 26 L17 28.5 L14.5 29.5 Z"/>
+  </g>
+</svg>

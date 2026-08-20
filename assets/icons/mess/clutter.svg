@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — general clutter mess (a stray dropped sock). -->
+  <path d="M18 8 L30 8 L30 24 C30 24 38 28 38 36 C38 40.5 34 43 29 43 C24.5 43 21.5 40.5 20.5 36 L18 26 Z"
+        fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 14 L30 14" stroke="#4A4038" stroke-width="2" stroke-linecap="round"/>
+</svg>

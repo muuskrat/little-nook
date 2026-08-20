@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — HEAD slot. Hair/head silhouette only, no face:
+       face features are a separate layer drawn on top (see face-*.svg).
+       Keep the same viewBox on any replacement so it aligns with the
+       ears/body layers underneath. -->
+  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 22 C78 22 55 46 52 78 C49 100 58 108 52 122 C44 150 42 200 46 258"/>
+    <path d="M112 22 C146 22 169 46 172 78 C175 100 166 108 172 122 C180 150 182 200 178 258"/>
+    <path d="M70 66 C85 56 95 70 108 60 C120 70 132 56 148 66"/>
+    <path d="M78 80 C90 72 100 82 112 74" stroke-width="3"/>
+    <path d="M100 20 C96 8 108 6 112 16" stroke-width="3"/>
+  </g>
+</svg>

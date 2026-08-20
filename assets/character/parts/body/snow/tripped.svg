@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — BODY slot, "snow" outfit, "tripped" pose. Same
+       body/pose geometry as the "regular" outfit — only the clothing
+       details (fuzzy hood trim, zipper, boots) differ. -->
+  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M84 160 L72 190 L76 258 L146 258 L152 190 L138 160"/>
+    <path d="M86 160 Q93 152 100 160 Q107 152 114 160 Q121 152 128 160 Q135 152 136 158" stroke-width="3"/>
+    <path d="M111 168 L111 218" stroke-width="2.5"/>
+    <path d="M80 190 C56 178 40 158 30 144"/>
+    <circle cx="26" cy="140" r="7"/>
+    <path d="M142 190 C166 178 182 158 192 144"/>
+    <circle cx="196" cy="140" r="7"/>
+    <path d="M76 258 L146 258 L154 296 L68 296 Z"/>
+    <path d="M96 296 C82 306 66 302 54 292"/>
+    <ellipse cx="48" cy="288" rx="13" ry="7" transform="rotate(-35 48 288)"/>
+    <path d="M126 296 C142 308 158 302 168 290"/>
+    <ellipse cx="174" cy="286" rx="13" ry="7" transform="rotate(35 174 286)"/>
+  </g>
+</svg>

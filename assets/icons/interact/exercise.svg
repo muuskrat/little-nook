@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — Exercise interaction. A simple dumbbell. -->
+  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 24 L33 24"/>
+    <rect x="9" y="17" width="7" height="14" rx="2"/>
+    <rect x="32" y="17" width="7" height="14" rx="2"/>
+    <path d="M6 21 L6 27" stroke-width="4"/>
+    <path d="M42 21 L42 27" stroke-width="4"/>
+  </g>
+</svg>

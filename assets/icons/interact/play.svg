@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — Play interaction. A simple bouncing ball. -->
+  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="22" cy="20" r="12"/>
+    <path d="M22 8 C18 14 18 26 22 32" stroke-width="2"/>
+    <path d="M10 20 C16 16 28 16 34 20" stroke-width="2"/>
+    <path d="M10 40 L14 34 M18 41 L20 36 M27 41 L25 36 M34 40 L30 34" stroke-width="2"/>
+  </g>
+</svg>

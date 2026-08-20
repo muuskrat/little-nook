@@ -1,0 +1,11 @@
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+
+# Stray debris file (a mangled scratchpad path from an earlier session,
+# not part of the project)
+UsersmgkuuAppDataLocalTempclaudec--Users-mgkuu-OneDrive-Documents-Code-Website-game831abda7-12a0-4728-bfb9-69d13118ad69scratchpadpetting_anim.png

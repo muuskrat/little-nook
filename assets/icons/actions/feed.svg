@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — Feed action. A simple food bowl with steam. -->
+  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 24 C8 24 8 35 24 35 C40 35 40 24 40 24"/>
+    <path d="M7 24 L41 24"/>
+    <path d="M20 8 C18 11 22 12 20 15" stroke-width="2"/>
+    <path d="M28 8 C26 11 30 12 28 15" stroke-width="2"/>
+  </g>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — BODY slot, "sitting" idle pose. Keep the same
+       viewBox on any replacement so it lines up with the head/ears/face
+       layers above it. -->
+  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 160 L70 190 L74 260 L148 260 L152 190 L142 160"/>
+    <path d="M92 158 L111 180 L130 158"/>
+    <path d="M104 183 L118 183 M111 177 L111 191" stroke-width="3"/>
+    <path d="M74 195 C66 210 70 222 88 226"/>
+    <circle cx="88" cy="226" r="7"/>
+    <path d="M148 195 C156 210 152 222 134 226"/>
+    <circle cx="134" cy="226" r="7"/>
+    <path d="M74 260 Q60 280 66 292 L156 292 Q162 280 148 260 Z"/>
+    <ellipse cx="80" cy="278" rx="10" ry="12"/>
+    <ellipse cx="142" cy="278" rx="10" ry="12"/>
+    <ellipse cx="94" cy="298" rx="9" ry="5"/>
+    <ellipse cx="128" cy="298" rx="9" ry="5"/>
+  </g>
+</svg>

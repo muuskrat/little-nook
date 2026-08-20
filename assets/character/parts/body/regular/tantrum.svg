@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — BODY slot, brief "tantrum" pose (flailing arms,
+       stomping), flashed for a moment when a mad pet makes a mess. -->
+  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M84 160 L72 190 L76 258 L146 258 L152 190 L138 160"/>
+    <path d="M92 158 L111 180 L130 158"/>
+    <path d="M104 183 L118 183 M111 177 L111 191" stroke-width="3"/>
+    <path d="M80 188 C56 168 34 172 20 158"/>
+    <circle cx="18" cy="156" r="7"/>
+    <path d="M142 188 C168 164 186 172 200 162"/>
+    <circle cx="202" cy="160" r="7"/>
+    <path d="M76 258 L146 258 L154 294 L68 294 Z"/>
+    <path d="M94 294 L100 316" stroke-width="4"/>
+    <ellipse cx="102" cy="318" rx="10" ry="5"/>
+    <path d="M124 290 C110 278 96 282 84 270"/>
+    <ellipse cx="80" cy="266" rx="10" ry="6" transform="rotate(35 80 266)"/>
+  </g>
+</svg>

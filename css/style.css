@@ -1,0 +1,1142 @@
+/* ---------- palette (muted / cute) ---------- */
+:root {
+  --cream:      #F1E9DF;
+  --tan:        #D9CFC2;
+  --floor:      #B7A896;
+  --floor-dark: #A5967F;
+  --taupe-line: #8f8168;
+  --ink:        #4A4038;
+  --ink-soft:   #7A6E63;
+
+  --pink:       #E3A9A0;
+  --pink-deep:  #D48C82;
+  --sage:       #9CAF88;
+  --sage-deep:  #83996f;
+  --lavender:   #B8A9C9;
+  --lavender-deep:#a08fb5;
+  --sand:       #D9A066;
+  --sky:        #8FB6C7;
+  --gold:       #F2B705;
+
+  --card:       #FBF6EF;
+  --shadow:     rgba(74, 64, 56, 0.18);
+
+  --food-color:   #D9A066;
+  --water-color:  #7FA8B3;
+  --sleep-color:  #A395C4;
+  --fun-color:    #E0A9B4;
+  --health-color: #8FAE7D;
+  --love-color:   #D97C86;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--cream);
+}
+
+/* ---------- top bar ---------- */
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--card);
+  border-bottom: 2px solid var(--tan);
+}
+
+#meters {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 74px;
+}
+
+.meter-icon { width: 15px; height: 15px; object-fit: contain; filter: saturate(0.85); flex-shrink: 0; }
+
+.meter-track {
+  width: 56px;
+  height: 9px;
+  background: var(--tan);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+}
+
+.meter-fill {
+  height: 100%;
+  width: 70%;
+  border-radius: 6px;
+  transition: width 0.5s ease, background 0.5s ease;
+}
+
+.meter[data-stat="food"]   .meter-fill { background: var(--food-color); }
+.meter[data-stat="water"]  .meter-fill { background: var(--water-color); }
+.meter[data-stat="sleep"]  .meter-fill { background: var(--sleep-color); }
+.meter[data-stat="fun"]    .meter-fill { background: var(--fun-color); }
+.meter[data-stat="health"] .meter-fill { background: var(--health-color); }
+.meter[data-stat="love"]   .meter-fill { background: var(--love-color); }
+
+/* Too-low / too-high indicators (see renderMeters()'s stat-low/stat-high
+   toggle in js/ui.js) — a colored glow ring around the whole track (put on
+   .meter-track itself, not .meter-fill, since the track's own
+   overflow:hidden would otherwise clip a glow drawn by its child) plus a
+   faster, deeper pulse on the fill than the old low-only version, so both
+   states read as genuinely urgent/notable at a glance rather than a subtle
+   tint change — and distinct hues (red-toned low, gold high) so the two
+   can never be confused for each other. */
+.meter.stat-low .meter-fill { background: var(--pink-deep) !important; animation: pulse-low 0.8s infinite; }
+.meter.stat-low .meter-track {
+  box-shadow: 0 0 0 2px var(--pink-deep), 0 0 7px 2px rgba(212, 140, 130, 0.75), inset 0 1px 2px rgba(0,0,0,0.15);
+}
+@keyframes pulse-low {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.meter.stat-high .meter-fill { background: var(--gold) !important; animation: pulse-high 0.8s infinite; }
+.meter.stat-high .meter-track {
+  box-shadow: 0 0 0 2px var(--gold), 0 0 7px 2px rgba(242, 181, 5, 0.75), inset 0 1px 2px rgba(0,0,0,0.15);
+}
+@keyframes pulse-high {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@media (max-width: 560px) {
+  .meter { min-width: 0; gap: 3px; }
+  .meter-track { width: 28px; }
+  .meter-icon { width: 12px; height: 12px; }
+  #topbar { padding: 8px; gap: 6px; }
+  #meters { gap: 5px; }
+  #mood-display { padding: 4px 8px; font-size: 11px; }
+}
+
+#money-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  background: var(--tan);
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.coin { font-size: 14px; }
+
+/* Current mood, next to the meters — kept in sync with whatever the
+   character's own face is actually showing right now (sleeping/tripping/
+   mad take priority over the dominant-stat emotion — see
+   currentMoodInfo() in js/main.js, which mirrors refreshVisual()'s
+   priority order in js/room.js exactly so this label can never say
+   something different from the character's own expression). */
+#mood-display {
+  display: flex;
+  align-items: center;
+  background: var(--tan);
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---------- room ---------- */
+#room-view {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+#room {
+  --wall-height: 32%;
+  /* Room-theme colors (see setRoomTheme() in js/room.js, driven by which
+     "room" shop item is equipped). Defaults here are the normal room;
+     [data-theme] below overrides just these four variables — nothing else
+     about the room changes between themes, only the wall/floor look. */
+  --room-wall-start: var(--tan);
+  --room-wall-end: var(--cream);
+  --room-floor-start: var(--floor);
+  --room-floor-end: var(--floor-dark);
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#room[data-theme="island"] {
+  --room-wall-start: #8FD3E0;
+  --room-wall-end: #E3F4F1;
+  --room-floor-start: #E8D2A0;
+  --room-floor-end: #D2B378;
+}
+
+#room[data-theme="snow"] {
+  --room-wall-start: #C9DEE8;
+  --room-wall-end: #F1F7F8;
+  --room-floor-start: #F0F4F5;
+  --room-floor-end: #D6E2E6;
+}
+
+#room-wall {
+  height: var(--wall-height);
+  background: linear-gradient(180deg, var(--room-wall-start) 0%, var(--room-wall-end) 100%);
+  border-bottom: 3px solid var(--taupe-line);
+  position: relative;
+}
+
+/* Island and Snowy Japan get an actual illustrated scene instead of a flat
+   recolor — see assets/rooms/. The normal room stays a plain gradient on
+   purpose (it's the "blank canvas" default; the other two are meant to
+   read as real destinations). Swap either file for your own art any time,
+   same filename, roughly landscape aspect ratio. */
+#room[data-theme="island"] #room-wall {
+  background-image: url("../assets/rooms/island-wall.svg");
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+}
+#room[data-theme="snow"] #room-wall {
+  background-image: url("../assets/rooms/snow-wall.svg");
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+}
+
+#room-wall::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(90deg, rgba(0,0,0,0.03) 0 2px, transparent 2px 64px);
+}
+/* that subtle wallpaper-stripe texture only makes sense on the plain
+   gradient normal room, not over an illustrated scene */
+#room[data-theme="island"] #room-wall::after,
+#room[data-theme="snow"] #room-wall::after {
+  display: none;
+}
+
+#room-floor {
+  position: relative;
+  flex: 1;
+  background: linear-gradient(180deg, var(--room-floor-start) 0%, var(--room-floor-end) 100%);
+  cursor: pointer;
+  overflow: hidden;
+  /* trapezoid = fake perspective floor for the 2.5D feel. Only the
+     background texture lives here — the pet/items are a separate,
+     unclipped overlay (#scene-overlay) so they never get cut off by this
+     shape near the back wall. */
+  clip-path: polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%);
+}
+
+#room-floor::before {
+  /* subtle floor plank / tile lines converging toward the back wall */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(100deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 12.5%),
+    repeating-linear-gradient(80deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 12.5%);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Sits above both #room-wall and #room-floor, sized to exactly match the
+   floor's box so percentage-based positioning still lines up, but with no
+   clip-path — the pet and placed items render fully even when they extend
+   above the floor's visual top edge. Transparent to clicks except where a
+   child (the pet, a room item) explicitly opts back in, so floor clicks
+   still reach #room-floor's click-to-walk listener underneath. */
+#scene-overlay {
+  position: absolute;
+  inset: var(--wall-height) 0 0 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#room-items-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.room-item {
+  position: absolute;
+  font-size: 34px;
+  transform: translate(-50%, -85%);
+  filter: drop-shadow(0 4px 3px rgba(0,0,0,0.25));
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+/* the one item currently picked up (see startCarrying() in room.js) —
+   follows the pointer until the next click places it */
+.room-item.carrying { cursor: pointer; opacity: 0.85; z-index: 999; }
+
+/* Decorate-mode resize handle on a placed decoration's corner — drag it
+   outward/inward to grow/shrink the item (see startResize() in room.js). */
+.resize-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 15px;
+  height: 15px;
+  background: var(--sage);
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.resize-handle:hover { background: var(--sage-deep); }
+
+/* food/water bowls just placed in the room, waiting for the pet */
+.room-item.kind-food, .room-item.kind-water { cursor: default; }
+
+/* messes are click-to-clean any time, not just decorate mode */
+.room-item.kind-mess {
+  cursor: pointer;
+  animation: mess-wobble 1.6s ease-in-out infinite;
+}
+@keyframes mess-wobble {
+  0%, 100% { transform: translate(-50%, -85%) rotate(-4deg) scale(1); }
+  50%      { transform: translate(-50%, -85%) rotate(4deg) scale(1.08); }
+}
+
+#carry-slot {
+  bottom: 30px;
+  left: -6px;
+  font-size: 22px;
+}
+#pet-wrap.carrying-item #carry-slot { animation: carry-jiggle 0.4s ease-in-out infinite; }
+@keyframes carry-jiggle {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
+}
+
+/* Interact sidebar: docked to the side of the room, buttons styled exactly
+   like the bottom action bar (see .action-btn) rather than a popup that
+   chases the pet around as it walks. */
+#interact-bar {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(251, 246, 239, 0.9);
+  border: 2px solid var(--tan);
+  border-radius: 16px;
+  padding: 8px 5px;
+  box-shadow: 0 4px 10px var(--shadow);
+  z-index: 15;
+}
+#interact-bar .action-btn { padding: 5px 4px; }
+#interact-bar .action-btn .btn-icon { width: 17px; height: 17px; }
+#interact-bar .action-btn span { font-size: 9px; }
+
+@media (max-width: 520px) {
+  #interact-bar { right: 4px; padding: 6px 4px; gap: 4px; }
+  #interact-bar .action-btn { padding: 4px 3px; }
+  #interact-bar .action-btn .btn-icon { width: 15px; height: 15px; }
+}
+
+/* Secret dev button: +100 coins, for testing. Tucked in a corner, low-key
+   on purpose (not meant to be a normal player-facing control). */
+#btn-dev-coins {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  z-index: 20;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  opacity: 0.25;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: opacity 0.15s ease;
+}
+#btn-dev-coins:hover { opacity: 0.85; }
+
+/* Put-away storage button — only shown while carrying a decor item
+   (see updateStorageButtonVisibility() in room.js). */
+#btn-storage {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--tan);
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 4px 10px var(--shadow);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+#btn-storage img { width: 24px; height: 24px; }
+#btn-storage:hover { background: var(--pink); transform: translateX(-50%) scale(1.08); }
+
+/* Petting meter: only shown while the player is actively holding a
+   click-and-hold petting gesture on the character (see startPetting() in
+   main.js). Fills the whole time it's held; overfilling it tips into
+   "too much" instead of more love — see .too-much below. */
+#petting-meter {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 2px solid var(--tan);
+  border-radius: 10px;
+  padding: 5px 10px;
+  box-shadow: 0 4px 10px var(--shadow);
+  pointer-events: none;
+}
+#petting-meter .btn-icon { width: 16px; height: 16px; }
+#petting-meter .meter-track { width: 80px; height: 8px; }
+#petting-meter-fill { background: var(--love-color); }
+#petting-meter-fill.too-much { background: var(--pink-deep); animation: pulse-low 0.5s infinite; }
+
+/* Play energy: a small always-visible gauge on the Play button itself —
+   using it costs energy, and it refills on its own over time (see
+   PLAY_ENERGY_COST / PLAY_ENERGY_REGEN_PER_MIN). */
+.mini-meter-track {
+  width: 100%;
+  height: 4px;
+  margin-top: 3px;
+  background: var(--tan);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mini-meter-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--fun-color);
+  transition: width 0.3s ease;
+}
+.action-btn.energy-empty { opacity: 0.55; }
+
+/* Armed interact cursor: click Pet/Play/Scold in the sidebar to arm it
+   (see pendingInteraction in main.js), then click the character to
+   activate — the cursor swaps to that action's own icon as a reminder of
+   what's armed and that nothing has happened yet. */
+#room.armed-pet #room-floor, #room.armed-pet #pet-visual, #room.armed-pet .room-item {
+  cursor: url("../assets/icons/interact/pet.svg") 12 12, pointer;
+}
+#room.armed-play #room-floor, #room.armed-play #pet-visual, #room.armed-play .room-item {
+  cursor: url("../assets/icons/interact/play.svg") 12 12, pointer;
+}
+#room.armed-scold #room-floor, #room.armed-scold #pet-visual, #room.armed-scold .room-item {
+  cursor: url("../assets/icons/interact/scold.svg") 12 12, pointer;
+}
+#room.armed-exercise #room-floor, #room.armed-exercise #pet-visual, #room.armed-exercise .room-item {
+  cursor: url("../assets/icons/interact/exercise.svg") 12 12, pointer;
+}
+
+.heart-particle {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  font-size: 20px;
+  pointer-events: none;
+  animation: heart-float 0.9s ease-out forwards;
+}
+@keyframes heart-float {
+  0%   { opacity: 1; transform: translate(-50%, 0) scale(0.6); }
+  30%  { opacity: 1; transform: translate(-50%, -18px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -46px) scale(0.9); }
+}
+
+/* "+X" coin popup (see showMoneyParticle() in js/room.js) — bigger, gold,
+   outlined and with its own bouncier pop-and-float animation rather than
+   reusing .heart-particle's, so a coin gain (e.g. from scolding) actually
+   catches the eye instead of blending into the tan/cream background. */
+.money-particle {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #F2B705;
+  text-shadow: -1.5px -1.5px 0 var(--ink), 1.5px -1.5px 0 var(--ink),
+               -1.5px 1.5px 0 var(--ink), 1.5px 1.5px 0 var(--ink),
+               0 3px 4px rgba(0,0,0,0.35);
+  pointer-events: none;
+  animation: money-float 1.3s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards;
+  z-index: 8;
+}
+@keyframes money-float {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(0.4) rotate(-8deg); }
+  15%  { opacity: 1; transform: translate(-50%, -14px) scale(1.4) rotate(4deg); }
+  70%  { opacity: 1; transform: translate(-50%, -48px) scale(1.05) rotate(-2deg); }
+  100% { opacity: 0; transform: translate(-50%, -74px) scale(0.9) rotate(0deg); }
+}
+
+/* Flashes the topbar coin counter gold for a moment whenever a gain should
+   be hard to miss (see pulseMoneyDisplay() in js/ui.js / doScoldInteraction()
+   in js/main.js) — the floating .money-particle above the character's head
+   is easy to miss if you're not looking at the room right then; this makes
+   sure the running total itself visibly reacts too. */
+#money-display.money-pulse { animation: money-display-pulse 0.6s ease-out; }
+@keyframes money-display-pulse {
+  0%   { transform: scale(1); background: var(--tan); box-shadow: 0 0 0 rgba(242,185,5,0); }
+  35%  { transform: scale(1.22); background: #F2B705; box-shadow: 0 0 14px rgba(242,185,5,0.9); }
+  100% { transform: scale(1); background: var(--tan); box-shadow: 0 0 0 rgba(242,185,5,0); }
+}
+
+#pet-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -92%) scale(0.85);
+  transition: left 0s, top 0s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 5;
+  /* stop a click-drag near the pet from highlighting/selecting it */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* the 4 stacked art layers (body/ears/head/face) that compose one pet */
+#pet-visual {
+  position: relative;
+  width: 96px;
+  height: 140px;
+  cursor: pointer;
+  pointer-events: auto;
+  filter: drop-shadow(0 6px 4px rgba(0,0,0,0.22));
+}
+
+.pet-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+#layer-body { z-index: 1; }
+#layer-ears { z-index: 2; }
+#layer-head { z-index: 3; }
+#layer-face { z-index: 4; }
+
+#pet-visual { transform-origin: 50% 96%; }
+
+#pet-wrap.facing-left #pet-visual { transform: scaleX(-1); }
+#pet-wrap.facing-left #pet-visual { --flip: -1; }
+#pet-wrap:not(.facing-left) #pet-visual { --flip: 1; }
+
+/* very simple 2-frame walk cycle: tilt left, tilt right, hard cut between
+   the two (no smooth interpolation) rather than a bob */
+#pet-wrap.walking #pet-visual { animation: walk-tilt 0.6s infinite; }
+@keyframes walk-tilt {
+  0%, 50%    { transform: rotate(-8deg) scaleX(var(--flip,1)); }
+  50.01%, 100% { transform: rotate(8deg) scaleX(var(--flip,1)); }
+}
+
+/* self-directed idle behaviors (see main.js's idle-activity picker) */
+#pet-wrap.resting #pet-visual { animation: idle-breathe 2.2s ease-in-out infinite; }
+@keyframes idle-breathe {
+  0%, 100% { transform: scaleY(1) scaleX(var(--flip,1)); }
+  50%      { transform: scaleY(0.95) scaleX(var(--flip,1)); }
+}
+
+#pet-wrap.sitting #pet-visual { animation: idle-settle 1.8s ease-in-out infinite; }
+@keyframes idle-settle {
+  0%, 100% { transform: scaleY(0.9) translateY(4%) scaleX(var(--flip,1)); }
+  50%      { transform: scaleY(0.88) translateY(5%) scaleX(var(--flip,1)); }
+}
+
+#pet-wrap.playing-alone #pet-visual { animation: idle-hop 0.5s ease-in-out infinite; }
+@keyframes idle-hop {
+  0%, 100% { transform: translateY(0) rotate(-6deg) scaleX(var(--flip,1)); }
+  50%      { transform: translateY(-10px) rotate(6deg) scaleX(var(--flip,1)); }
+}
+
+/* Sleeping: rotated onto its side for the nap, direction randomized per
+   nap via --sleep-dir (see setSleepingVisual() in room.js) — the same
+   rotate-the-standing-sprite trick tripping's fall uses, reusing the
+   shared transform-origin near the feet so it settles onto the floor
+   instead of spinning in place, combined with a gentle breathing motion. */
+#pet-wrap.sleeping #pet-visual { animation: sleep-breathe 3.2s ease-in-out infinite; }
+@keyframes sleep-breathe {
+  0%, 100% { transform: rotate(calc(88deg * var(--sleep-dir, 1))) translateY(6%) scaleY(1) scaleX(var(--flip,1)); }
+  50%      { transform: rotate(calc(88deg * var(--sleep-dir, 1))) translateY(6%) scaleY(0.96) scaleX(var(--flip,1)); }
+}
+
+/* petting: a slow happy bounce on the character while it's being held (see
+   setPettingVisual() in room.js / startPetting() in main.js) — dips down
+   and squishes slightly wider on each "pat", lifts and stretches slightly
+   between pats, in sync with the hand bobbing down onto its head just
+   below (same 1.3s timing, same 50% keyframe for "hand down/character
+   dipped"). */
+#pet-wrap.petting #pet-visual { animation: petting-bounce 1.3s ease-in-out infinite; }
+@keyframes petting-bounce {
+  0%, 100% { transform: translateY(-3%) scaleY(1.03) scaleX(var(--flip,1)); }
+  50%      { transform: translateY(4%) scaleY(0.92) scaleX(calc(var(--flip,1) * 1.06)); }
+}
+
+/* the petting hand: hidden except during a hold, then bobs slowly up and
+   down over the character's head — same 1.3s timing as petting-squish
+   above so the hand appears to be what's causing each squish. */
+#petting-hand {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+  z-index: 6;
+}
+#pet-wrap.petting #petting-hand {
+  display: block;
+  animation: hand-pat 1.3s ease-in-out infinite;
+}
+@keyframes hand-pat {
+  0%, 100% { transform: translate(-50%, -8px) rotate(180deg); }
+  50%      { transform: translate(-50%, 6px) rotate(180deg); }
+}
+
+/* brief flash when a mad pet throws a tantrum (see playTantrum() in room.js) */
+.tantrum-shake { animation: tantrum-shake 0.15s ease-in-out infinite; }
+@keyframes tantrum-shake {
+  0%, 100% { transform: translateX(-3px) scaleX(var(--flip,1)); }
+  50%      { transform: translateX(3px) scaleX(var(--flip,1)); }
+}
+
+/* Scold: a quick recoil, turning sideways away from you and springing back
+   — see playScoldFlinch() in room.js / doScoldInteraction() in main.js.
+   Direction is randomized per scold via --scold-dir. Unlike sleeping/
+   tripping this never swaps which body/face art is showing (the sustained
+   "mad" face is a separate, longer-lived toggle — see setMadVisual()), so
+   there's nothing for a later persist()-triggered refreshVisual() call to
+   clobber; it's just a transient class with no JS-side guard needed. */
+.scold-flinch { animation: scold-flinch 0.55s ease-out 1; }
+@keyframes scold-flinch {
+  0%   { transform: rotate(0deg) scaleX(var(--flip,1)); }
+  25%  { transform: rotate(calc(28deg * var(--scold-dir, 1))) scaleX(var(--flip,1)); }
+  60%  { transform: rotate(calc(-6deg * var(--scold-dir, 1))) scaleX(var(--flip,1)); }
+  100% { transform: rotate(0deg) scaleX(var(--flip,1)); }
+}
+
+/* The monkey decoration renders roughly the character's own size (see
+   MONKEY_BASE_SIZE in js/room.js) and moves around on its own — smoothly
+   easing between spots (left/top/font-size all transition) rather than
+   teleporting, via moveMonkeyTo() directly updating its existing element
+   in place (see the comment on moveMonkeyTo() in js/room.js for why that
+   distinction matters) — plus the same two-frame walk-tilt wobble the
+   character's own walk cycle uses (.monkey-walking, toggled for the
+   duration of each move) and two "played with" reactions — see
+   playWithMonkey() in js/main.js. Every keyframe set re-includes the
+   item's own base translate(-50%,-85%) at every step (see .room-item)
+   since an active CSS animation replaces transform entirely while running. */
+.room-item.monkey-decor:not(.carrying) {
+  transition: left 1.4s ease-in-out, top 1.4s ease-in-out, font-size 1.4s ease-in-out;
+}
+.room-item.monkey-decor.monkey-walking { animation: monkey-walk-tilt 0.6s infinite; }
+@keyframes monkey-walk-tilt {
+  0%, 50%      { transform: translate(-50%, -85%) rotate(-8deg); }
+  50.01%, 100% { transform: translate(-50%, -85%) rotate(8deg); }
+}
+.room-item.monkey-fallen { animation: monkey-fallen 2s ease-out 1; }
+@keyframes monkey-fallen {
+  0%   { transform: translate(-50%, -85%) rotate(0deg); }
+  15%  { transform: translate(-50%, -85%) rotate(calc(78deg * var(--monkey-fall-dir, 1))); }
+  85%  { transform: translate(-50%, -85%) rotate(calc(78deg * var(--monkey-fall-dir, 1))); }
+  100% { transform: translate(-50%, -85%) rotate(0deg); }
+}
+.room-item.monkey-sliding { animation: monkey-slide 0.5s ease-in-out infinite; }
+@keyframes monkey-slide {
+  0%, 100% { transform: translate(calc(-50% - 8px), -85%); }
+  50%      { transform: translate(calc(-50% + 8px), -85%); }
+}
+
+/* Tripping (see setTripPhase() in room.js / triggerTrip() in main.js): a
+   small chance each tick, higher the messier the room is. Falling lays the
+   character sideways by rotating the whole layer — no separate lying-down
+   redraw needed, just the existing flailing "tripped" pose art rotated
+   onto its side (direction randomized per trip via --trip-dir). This
+   transition also does double duty for "sitting up": removing .tripped
+   rotates back to upright at the same moment the body art swaps to the
+   regular sitting pose (see TRIP_SIT_POSE in room.js), reading as the
+   character sitting itself back up. */
+#pet-visual { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#pet-wrap.tripped #pet-visual {
+  transform: rotate(calc(82deg * var(--trip-dir, 1))) scaleX(var(--flip,1)) translateY(6%);
+}
+
+/* High-fun "watching the monkey" reaction (see playWithMonkey()'s high-fun
+   branch in main.js): the character flops onto its side for the whole
+   reaction, same rotate-the-sprite trick sleeping/tripping use above,
+   direction randomized per reaction via --watch-dir (see
+   setWatchingMonkeyVisual() in room.js). Reuses #pet-visual's existing
+   transition rule above, so it eases in/out the same way tripping does. */
+#pet-wrap.watching-monkey #pet-visual {
+  transform: rotate(calc(75deg * var(--watch-dir, 1))) scaleX(var(--flip,1)) translateY(6%);
+}
+#pet-wrap.sleeping::after {
+  content: "Z z";
+  position: absolute;
+  top: -18px;
+  right: -6px;
+  font-weight: 700;
+  color: var(--lavender-deep);
+  animation: floatz 2s ease-in-out infinite;
+}
+@keyframes floatz {
+  0% { opacity: 0; transform: translateY(0); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-16px); }
+}
+
+.outfit-slot {
+  position: absolute;
+  font-size: 26px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+}
+
+#pet-name-tag {
+  margin-top: 4px;
+  font-size: 11px;
+  background: rgba(255,255,255,0.75);
+  padding: 1px 8px;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+#speech-bubble {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, 0);
+  background: var(--card);
+  border: 2px solid var(--tan);
+  padding: 6px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  box-shadow: 0 3px 6px var(--shadow);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#speech-bubble.hidden { opacity: 0; }
+
+/* ---------- action bar ---------- */
+#action-bar {
+  display: flex;
+  justify-content: space-around;
+  background: var(--card);
+  border-top: 2px solid var(--tan);
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 12px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.action-btn .btn-icon { width: 20px; height: 20px; object-fit: contain; }
+.action-btn.active-mode .btn-icon { filter: brightness(0) invert(1); }
+.action-btn span { font-size: 11px; font-weight: 600; }
+.action-btn:hover { background: var(--tan); }
+.action-btn:active { transform: scale(0.92); }
+.action-btn.active-mode { background: var(--sage); color: white; }
+
+/* ---------- modal ---------- */
+#modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(74, 64, 56, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+#modal-overlay.hidden { display: none; }
+
+#modal-panel {
+  position: relative;
+  background: var(--card);
+  border-radius: 18px;
+  padding: 20px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px var(--shadow);
+}
+
+#modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: none;
+  background: var(--tan);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--ink);
+}
+#modal-close:hover { background: var(--pink); color: white; }
+
+#modal-content h2 {
+  margin-top: 0;
+  font-size: 19px;
+}
+
+/* generic tab row used by shop/play modals */
+.tab-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  border: none;
+  background: var(--tan);
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.tab-btn.active { background: var(--sage); color: white; }
+
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.item-card {
+  background: white;
+  border: 2px solid var(--tan);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.item-card .item-icon { font-size: 30px; }
+.item-card .item-name { font-size: 12px; font-weight: 600; }
+.item-card .item-desc { font-size: 10px; color: var(--ink-soft); }
+.item-card .item-price { font-size: 12px; font-weight: 700; color: var(--sand); }
+.item-card .item-owned { font-size: 10px; color: var(--sage-deep); font-weight: 700; }
+
+.buy-btn, .use-btn {
+  margin-top: 4px;
+  border: none;
+  background: var(--sage);
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+}
+.buy-btn:disabled { background: #c9c2b8; cursor: not-allowed; }
+.buy-btn:hover:not(:disabled), .use-btn:hover { background: var(--sage-deep); }
+
+.equip-btn { background: var(--lavender); }
+.equip-btn.equipped { background: var(--lavender-deep); }
+.equip-btn:hover { background: var(--lavender-deep); }
+
+/* ---------- minigame ---------- */
+.game-stage {
+  position: relative;
+  width: 100%;
+  height: 360px;
+  background: linear-gradient(180deg, #cfe3ea, #eef6f3);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid var(--tan);
+  touch-action: none;
+}
+
+.falling-item {
+  position: absolute;
+  font-size: 28px;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+#basket {
+  position: absolute;
+  bottom: 8px;
+  width: 70px;
+  height: 40px;
+  font-size: 34px;
+  transform: translateX(-50%);
+  user-select: none;
+  text-align: center;
+}
+
+.game-hud {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin: 8px 2px;
+  font-size: 14px;
+}
+
+.game-overlay-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(251,246,239,0.9);
+  text-align: center;
+  padding: 20px;
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.memory-card {
+  aspect-ratio: 1;
+  background: var(--lavender);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.memory-card.flipped, .memory-card.matched {
+  background: var(--card);
+  border: 2px solid var(--tan);
+}
+.memory-card.matched { opacity: 0.55; cursor: default; }
+
+/* ---------- Lucky Spin (roulette) ---------- */
+.roulette-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0 10px;
+}
+.roulette-wheel {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 4px solid var(--card);
+  box-shadow: 0 4px 14px var(--shadow), inset 0 0 0 2px var(--tan);
+  transition: transform 3.6s cubic-bezier(0.12, 0.72, 0.15, 1);
+}
+.roulette-seg-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 22px;
+  transform-origin: 0 0;
+  margin-top: -11px;
+  margin-left: -11px;
+}
+.roulette-pointer {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 16px solid var(--ink);
+  z-index: 2;
+}
+
+/* ---------- Flap Flap (flappy bird) ---------- */
+.flappy-bird-sprite {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  top: 150px;
+  transform: translateY(-50%);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+  pointer-events: none;
+  z-index: 3;
+}
+.flappy-pipe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+.flappy-pipe-part {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--sage);
+  border: 2px solid var(--sage-deep);
+  border-radius: 4px;
+}
+.flappy-pipe-top { top: 0; }
+.flappy-pipe-bottom { bottom: 0; }
+
+/* ---------- Sneaky Sniff (shoe sniffing) ---------- */
+.sniff-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  position: relative;
+}
+.sniff-watcher {
+  font-size: 34px;
+  transition: transform 0.15s ease;
+}
+.sniff-watcher.watching { transform: scale(1.15); }
+/* brief "about to peek" warning right before the watcher opens their eyes
+   — see PEEK_WARNING_MS in js/minigames/shoesniff.js */
+.sniff-watcher.peeking { animation: sniff-peek-warn 0.28s ease-in-out infinite; }
+@keyframes sniff-peek-warn {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.12) rotate(-6deg); }
+}
+.sniff-shoe {
+  width: 88px;
+  height: 88px;
+  cursor: pointer;
+  user-select: none;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.2));
+  transition: transform 0.12s ease;
+}
+.sniff-shoe.sniffing { transform: scale(1.1) rotate(-4deg); }
+.sniff-progress-track {
+  width: 70%;
+  height: 12px;
+  background: var(--tan);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+}
+.sniff-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--sage);
+  transition: width 0.1s linear;
+}
+.sniff-caught-msg {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--pink-deep);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+.sniff-caught-msg.show { opacity: 1; }
+.sniff-stage.caught-flash { animation: sniff-flash 0.4s ease-out; }
+@keyframes sniff-flash {
+  0% { background: rgba(212, 140, 130, 0.35); }
+  100% { background: transparent; }
+}
+
+/* ---------- mini-game cooldown ---------- */
+.cooldown-msg {
+  font-weight: 700;
+  color: var(--sage-deep);
+  margin: 6px 0;
+}
+
+/* ---------- misc ---------- */
+.primary-btn {
+  border: none;
+  background: var(--sand);
+  color: white;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.primary-btn:hover { filter: brightness(0.95); }
+
+#toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0.95;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#toast.hidden { opacity: 0; transform: translate(-50%, 10px); pointer-events: none; }
+
+.hidden { display: none !important; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--tan); border-radius: 4px; }

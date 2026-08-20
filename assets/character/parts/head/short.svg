@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — HEAD slot, "short" hair option. No face (separate
+       layer). Keep the same viewBox on any replacement. -->
+  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 22 C82 22 58 44 54 74 C51 96 58 106 56 118 C53 132 51 144 54 154"/>
+    <path d="M112 22 C142 22 166 44 170 74 C173 96 166 106 168 118 C171 132 173 144 170 154"/>
+    <path d="M70 66 C85 56 95 70 108 60 C120 70 132 56 148 66"/>
+    <path d="M78 80 C90 72 100 82 112 74" stroke-width="3"/>
+    <path d="M100 20 C96 8 108 6 112 16" stroke-width="3"/>
+  </g>
+</svg>

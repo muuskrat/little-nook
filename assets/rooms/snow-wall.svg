@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 200" width="480" height="200" preserveAspectRatio="xMidYMax slice">
+  <!-- PLACEHOLDER SCENERY — Snowy Japan room wall. Mountain, torii gate,
+       pines, falling snow instead of a flat recolor. Swap for your own art
+       any time; rendered via CSS background-image (background-size:
+       cover), so any roughly-landscape image drops in without code
+       changes. -->
+  <defs>
+    <linearGradient id="snowSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#BFDCE8"/>
+      <stop offset="100%" stop-color="#F3F8F9"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="480" height="200" fill="url(#snowSky)"/>
+
+  <!-- far, lighter mountain for depth -->
+  <path d="M0 150 L70 70 L150 150 Z" fill="#C7D8DF" opacity="0.8"/>
+  <path d="M330 150 L400 90 L480 150 Z" fill="#C7D8DF" opacity="0.8"/>
+
+  <!-- main mountain (Fuji-like) with snow cap -->
+  <path d="M130 152 L240 34 L350 152 Z" fill="#9FB3BE"/>
+  <path d="M240 34 L204 92 L212 96 L222 84 L228 96 L236 82 L244 98 L252 82 L260 96 L268 84 L276 96 L280 92 Z" fill="#F3F8F9"/>
+
+  <!-- pine trees, sides -->
+  <g fill="#5B7A63">
+    <path d="M52 168 L64 168 L58 154 Z"/>
+    <path d="M46 156 L70 156 L58 138 Z"/>
+    <path d="M50 142 L66 142 L58 128 Z"/>
+    <rect x="56" y="166" width="4" height="10"/>
+  </g>
+  <g fill="#5B7A63">
+    <path d="M410 172 L424 172 L417 156 Z"/>
+    <path d="M404 158 L430 158 L417 138 Z"/>
+    <path d="M408 144 L426 144 L417 128 Z"/>
+    <rect x="415" y="170" width="4" height="10"/>
+  </g>
+
+  <!-- torii gate -->
+  <g fill="none" stroke="#B5705E" stroke-width="7" stroke-linecap="round">
+    <path d="M190 200 L190 120"/>
+    <path d="M290 200 L290 120"/>
+    <path d="M178 128 L302 128"/>
+    <path d="M170 112 Q240 98 310 112" stroke-width="9"/>
+  </g>
+  <path d="M232 128 L232 152 L248 152 L248 128 Z" fill="#B5705E"/>
+
+  <!-- falling snow -->
+  <g fill="#FFFFFF" opacity="0.9">
+    <circle cx="40" cy="50" r="3"/>
+    <circle cx="120" cy="30" r="2.5"/>
+    <circle cx="360" cy="46" r="3"/>
+    <circle cx="440" cy="70" r="2.5"/>
+    <circle cx="20" cy="110" r="2.5"/>
+    <circle cx="460" cy="120" r="3"/>
+    <circle cx="150" cy="60" r="2"/>
+    <circle cx="320" cy="20" r="2"/>
+  </g>
+</svg>

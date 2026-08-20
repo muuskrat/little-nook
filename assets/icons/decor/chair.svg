@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — Chair decoration. -->
+  <g fill="none" stroke="#4A4038" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 10 L14 28 L34 28 L34 14"/>
+    <path d="M14 28 L12 40 M34 28 L36 40"/>
+    <path d="M16 34 L32 34"/>
+  </g>
+</svg>

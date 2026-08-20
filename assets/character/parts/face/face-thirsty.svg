@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — FACE slot, "thirsty" emotion (water critically low).
+       Droopy, half-lidded eyes and an open panting mouth with tongue out;
+       a hollow (unfilled) droplet off to the side reads as "craving
+       water" — contrast with face-crying.svg's solid, filled tears. -->
+  <g fill="none" stroke="#4A4038" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M78 100 Q88 97 98 100"/>
+    <path d="M124 100 Q134 97 144 100"/>
+    <path d="M80 117 Q88 120 96 117"/>
+    <path d="M126 117 Q134 120 142 117"/>
+  </g>
+  <ellipse cx="111" cy="144" rx="8" ry="7" fill="#4A4038" opacity="0.85"/>
+  <path d="M107 147 Q111 152 115 147" fill="none" stroke="#D48C82" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="76" cy="132" rx="8" ry="5" fill="#E3A9A0" opacity="0.4"/>
+  <ellipse cx="146" cy="132" rx="8" ry="5" fill="#E3A9A0" opacity="0.4"/>
+  <path d="M152 96 q4 8 0 14 q-4 -6 0 -14 Z" fill="none" stroke="#7FA8B3" stroke-width="2" opacity="0.85"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!-- PLACEHOLDER ICON — food meter. Replace with your own hand-drawn art,
+       same filename, roughly square canvas. -->
+  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M24 18 C14 18 9 25 10 32 C11 38 16 42 21 42 C22.5 42 23 41 24 41 C25 41 25.5 42 27 42 C32 42 37 38 38 32 C39 25 34 18 24 18 Z"/>
+    <path d="M24 18 C23 14 24 11 22 8"/>
+    <path d="M24 12 C27 10 29 11 30 13"/>
+  </g>
+</svg>

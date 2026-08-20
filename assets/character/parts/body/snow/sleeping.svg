@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
+  <!-- PLACEHOLDER ART — BODY slot, "snow" outfit, sleeping pose. -->
+  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M85 175 L75 200 L82 245 L140 245 L147 200 L137 175"/>
+    <path d="M90 175 Q96 168 102 175 Q108 168 114 175 Q120 168 126 175 Q132 168 134 172" stroke-width="3"/>
+    <path d="M111 182 L111 210" stroke-width="2.5"/>
+    <path d="M78 205 C62 215 58 235 78 248"/>
+    <path d="M144 205 C160 215 164 235 144 248"/>
+    <ellipse cx="111" cy="270" rx="46" ry="30"/>
+    <ellipse cx="90" cy="291" rx="12" ry="6"/>
+    <ellipse cx="132" cy="291" rx="12" ry="6"/>
+  </g>
+</svg>
