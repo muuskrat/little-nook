@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — Decorate action. A wand with a sparkle. -->
-  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 38 L30 22"/>
-    <path d="M27 25 L33 19" stroke-width="4"/>
-  </g>
-  <path d="M36 8 L37.5 12.5 L42 14 L37.5 15.5 L36 20 L34.5 15.5 L30 14 L34.5 12.5 Z"
-        fill="none" stroke="#4A4038" stroke-width="2" stroke-linejoin="round"/>
-</svg>

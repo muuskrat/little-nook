@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — spill mess (dropped water). -->
-  <g fill="none" stroke="#7FA8B3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <ellipse cx="24" cy="34" rx="16" ry="6"/>
-    <path d="M24 30 C20 24 24 18 24 14 C24 18 28 24 24 30 Z"/>
-    <path d="M14 26 C13 23 14 21 13 19"/>
-    <path d="M35 27 C36 24 35 22 36 20"/>
-  </g>
-</svg>

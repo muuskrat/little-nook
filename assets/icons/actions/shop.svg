@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — Shop action. A simple bag. -->
-  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M12 17 L36 17 L34 40 C34 41 33 42 31 42 L17 42 C15 42 14 41 14 40 Z"/>
-    <path d="M18 17 C18 11 20.5 8 24 8 C27.5 8 30 11 30 17"/>
-  </g>
-</svg>

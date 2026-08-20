@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
-  <!-- PLACEHOLDER ART — EARS slot, rendered behind the head layer (the
-       hair covers the base of each ear, tips poke out above/beside it).
-       Keep the same viewBox on any replacement. -->
-  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M60 75 C34 55 12 30 14 10 C15 2 26 0 30 8 C34 18 26 30 34 42 C40 52 50 60 58 68"/>
-    <path d="M162 78 C176 55 190 30 182 12 C178 4 166 4 164 14 C162 26 170 36 162 48 C156 58 150 66 146 72"/>
-  </g>
-</svg>

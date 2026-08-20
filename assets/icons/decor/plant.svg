@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — Plant decoration. -->
-  <g fill="none" stroke="#4A4038" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M16 30 L18 42 L30 42 L32 30 Z"/>
-    <path d="M24 30 C24 20 24 14 24 8"/>
-    <path d="M24 20 C24 14 18 12 14 14 C16 20 20 22 24 20 Z" fill="#9CAF88" opacity="0.5"/>
-    <path d="M24 16 C24 10 30 8 34 10 C32 16 28 18 24 16 Z" fill="#9CAF88" opacity="0.5"/>
-  </g>
-</svg>

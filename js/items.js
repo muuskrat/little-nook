@@ -24,18 +24,18 @@ export const ITEMS = {
   // Decorations placed in the room can carry a passive bonus (see
   // DECOR_EFFECTS below) on top of just being cosmetic. Icons are real
   // image assets under assets/icons/decor/, not emoji.
-  plant:        { id: 'plant', name: 'Plant', icon: 'assets/icons/decor/plant.svg', price: 20, category: 'decoration' },
-  lamp:         { id: 'lamp', name: 'Lamp', icon: 'assets/icons/decor/lamp.svg', price: 22, category: 'decoration' },
-  painting:     { id: 'painting', name: 'Painting', icon: 'assets/icons/decor/painting.svg', price: 28, category: 'decoration' },
-  candle:       { id: 'candle', name: 'Candle', icon: 'assets/icons/decor/candle.svg', price: 12, category: 'decoration' },
-  chair:        { id: 'chair', name: 'Chair', icon: 'assets/icons/decor/chair.svg', price: 24, category: 'decoration' },
-  window:       { id: 'window', name: 'Window', icon: 'assets/icons/decor/window.svg', price: 30, category: 'decoration' },
-  bed:          { id: 'bed', name: 'Bed', icon: 'assets/icons/decor/bed.svg', price: 40, category: 'decoration' },
+  plant:        { id: 'plant', name: 'Plant', icon: 'assets/icons/decor/plant.png', price: 20, category: 'decoration' },
+  lamp:         { id: 'lamp', name: 'Lamp', icon: 'assets/icons/decor/lamp.png', price: 22, category: 'decoration' },
+  painting:     { id: 'painting', name: 'Painting', icon: 'assets/icons/decor/painting.png', price: 28, category: 'decoration' },
+  candle:       { id: 'candle', name: 'Candle', icon: 'assets/icons/decor/candle.png', price: 12, category: 'decoration' },
+  chair:        { id: 'chair', name: 'Chair', icon: 'assets/icons/decor/chair.png', price: 24, category: 'decoration' },
+  window:       { id: 'window', name: 'Window', icon: 'assets/icons/decor/window.png', price: 30, category: 'decoration' },
+  bed:          { id: 'bed', name: 'Bed', icon: 'assets/icons/decor/bed.png', price: 40, category: 'decoration' },
   // Not just cosmetic — the pet actually walks over to eat at a placed
   // table instead of eating wherever the food happens to be sitting (see
   // ACTIVITY_DECOR in js/main.js). No passive bonus, same as plant/lamp/
   // painting/chair.
-  table:        { id: 'table', name: 'Table', icon: 'assets/icons/decor/table.svg', price: 26, category: 'decoration' },
+  table:        { id: 'table', name: 'Table', icon: 'assets/icons/decor/table.png', price: 26, category: 'decoration' },
 
   // Pets: placed in the room like a decoration (same "buy, then place"
   // flow, same roomItems system — see placeItem() in js/shop.js), but kept
@@ -46,11 +46,11 @@ export const ITEMS = {
   // its own and occasionally drops a free banana (see monkeyTick() in
   // js/main.js), and it's the pet's favorite thing to play with (see
   // MONKEY_PLAY_WEIGHT there too).
-  monkey:       { id: 'monkey', name: 'Monkey', icon: 'assets/icons/decor/monkey.svg', price: 60, category: 'pet' },
+  monkey:       { id: 'monkey', name: 'Monkey', icon: 'assets/icons/decor/monkey.png', price: 60, category: 'pet' },
   // Unlockable variants — only buyable once you own the matching room (see
   // requiresRoom, checked in js/shop.js).
-  monkey_beach: { id: 'monkey_beach', name: 'Beach Monkey', icon: 'assets/icons/decor/monkey-beach.svg', price: 70, category: 'pet', requiresRoom: 'room_island' },
-  monkey_ice:   { id: 'monkey_ice', name: 'Ice Monkey', icon: 'assets/icons/decor/monkey-ice.svg', price: 70, category: 'pet', requiresRoom: 'room_snow' },
+  monkey_beach: { id: 'monkey_beach', name: 'Beach Monkey', icon: 'assets/icons/decor/monkey-beach.png', price: 70, category: 'pet', requiresRoom: 'room_island' },
+  monkey_ice:   { id: 'monkey_ice', name: 'Ice Monkey', icon: 'assets/icons/decor/monkey-ice.png', price: 70, category: 'pet', requiresRoom: 'room_snow' },
 
   // Character customization: body/hair/ears, each with a free starter (the
   // pet's original look) plus two purchasable alternatives. Exactly one of

@@ -25,7 +25,7 @@ export function mountFlappyGame(container, { onEnd }) {
       <span>🪙 Score: <span id="flappy-score">0</span></span>
     </div>
     <div class="game-stage" id="flappy-stage">
-      <img class="flappy-bird-sprite" id="flappy-bird" src="assets/icons/minigames/flappy-bird.svg" alt="">
+      <img class="flappy-bird-sprite" id="flappy-bird" src="assets/icons/minigames/flappy-bird.png" alt="">
     </div>
     <p style="font-size:12px;color:var(--ink-soft);margin-top:6px;">Click, tap, or press Space to flap. Avoid the pipes!</p>
   `;

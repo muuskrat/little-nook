@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — Table decoration. -->
-  <g fill="none" stroke="#4A4038" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 16 L42 16 L38 22 L10 22 Z"/>
-    <path d="M12 22 L12 40 M36 22 L36 40" stroke-width="3"/>
-  </g>
-</svg>

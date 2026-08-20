@@ -20,7 +20,7 @@ export function mountShoeSniffGame(container, { onEnd }) {
     <div class="game-stage sniff-stage" id="sniff-stage">
       <div class="sniff-watcher" id="sniff-watcher">🙈</div>
       <div class="sniff-progress-track"><div class="sniff-progress-fill" id="sniff-progress"></div></div>
-      <img class="sniff-shoe" id="sniff-shoe" src="assets/icons/minigames/stinky-shoe.svg" alt="stinky shoe">
+      <img class="sniff-shoe" id="sniff-shoe" src="assets/icons/minigames/stinky-shoe.png" alt="stinky shoe">
       <div class="sniff-caught-msg" id="sniff-caught">Caught!</div>
     </div>
     <p style="font-size:12px;color:var(--ink-soft);margin-top:6px;">Press and hold the shoe to sniff it — but let go the instant you're being watched!</p>

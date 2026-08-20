@@ -216,13 +216,13 @@ html, body {
    read as real destinations). Swap either file for your own art any time,
    same filename, roughly landscape aspect ratio. */
 #room[data-theme="island"] #room-wall {
-  background-image: url("../assets/rooms/island-wall.svg");
+  background-image: url("../assets/rooms/island-wall.png");
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
 }
 #room[data-theme="snow"] #room-wall {
-  background-image: url("../assets/rooms/snow-wall.svg");
+  background-image: url("../assets/rooms/snow-wall.png");
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
@@ -456,16 +456,16 @@ html, body {
    activate — the cursor swaps to that action's own icon as a reminder of
    what's armed and that nothing has happened yet. */
 #room.armed-pet #room-floor, #room.armed-pet #pet-visual, #room.armed-pet .room-item {
-  cursor: url("../assets/icons/interact/pet.svg") 12 12, pointer;
+  cursor: url("../assets/icons/interact/pet.png") 12 12, pointer;
 }
 #room.armed-play #room-floor, #room.armed-play #pet-visual, #room.armed-play .room-item {
-  cursor: url("../assets/icons/interact/play.svg") 12 12, pointer;
+  cursor: url("../assets/icons/interact/play.png") 12 12, pointer;
 }
 #room.armed-scold #room-floor, #room.armed-scold #pet-visual, #room.armed-scold .room-item {
-  cursor: url("../assets/icons/interact/scold.svg") 12 12, pointer;
+  cursor: url("../assets/icons/interact/scold.png") 12 12, pointer;
 }
 #room.armed-exercise #room-floor, #room.armed-exercise #pet-visual, #room.armed-exercise .room-item {
-  cursor: url("../assets/icons/interact/exercise.svg") 12 12, pointer;
+  cursor: url("../assets/icons/interact/exercise.png") 12 12, pointer;
 }
 
 .heart-particle {

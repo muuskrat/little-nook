@@ -9,7 +9,7 @@
 // without a pose of their own. To add a body pose for one: draw it into
 // every body-type folder under assets/character/parts/body/ using the same
 // pose key, then point that emotion's `bodyPose` at it. To add/replace a
-// face: draw face-<key>.svg in assets/character/parts/face/ using the same
+// face: draw face-<key>.png in assets/character/parts/face/ using the same
 // viewBox as the existing parts, then fill in its `face` entry below (bare
 // filename, no folder).
 //
@@ -24,13 +24,13 @@ const FACE_DIR = 'assets/character/parts/face/';
 
 export const EMOTIONS = {
   happy: {
-    face: 'face-neutral.svg',
+    face: 'face-neutral.png',
     bodyPose: 'base',
   },
   hungry: {
     // food too low
     test: (s) => 30 - s.food,
-    face: 'face-hungry.svg',
+    face: 'face-hungry.png',
     bodyPose: 'hungry',
     effect: { funMult: 1.8, loveMult: 1.8 },
     line: "I'm hungry...",
@@ -39,7 +39,7 @@ export const EMOTIONS = {
     // food too high — ate past full (see the "irresistible" food items in
     // items.js), overfull and sluggish
     test: (s) => s.food - 92,
-    face: 'face-stuffed.svg',
+    face: 'face-stuffed.png',
     bodyPose: 'stuffed',
     effect: { sleepMult: 1.6, moveMult: 0.6 },
     line: '*sluggish*',
@@ -47,7 +47,7 @@ export const EMOTIONS = {
   thirsty: {
     // water too low — dehydration hurts health
     test: (s) => 25 - s.water,
-    face: 'face-thirsty.svg',
+    face: 'face-thirsty.png',
     bodyPose: 'base',
     effect: { healthPenaltyMult: 1.6 },
     line: 'So thirsty...',
@@ -55,7 +55,7 @@ export const EMOTIONS = {
   exhausted: {
     // sleep too low — moves slowly
     test: (s) => 25 - s.sleep,
-    face: 'face-exhausted.svg',
+    face: 'face-exhausted.png',
     bodyPose: 'base',
     effect: { moveMult: 0.6 },
     line: 'Getting sleepy...',
@@ -63,7 +63,7 @@ export const EMOTIONS = {
   bored: {
     // fun too low — love fades faster when bored
     test: (s) => 25 - s.fun,
-    face: 'face-bored.svg',
+    face: 'face-bored.png',
     bodyPose: 'base',
     effect: { loveMult: 1.6 },
     line: "I'm bored...",
@@ -71,7 +71,7 @@ export const EMOTIONS = {
   sad: {
     // love/health too low, or the room is a mess
     test: (s, ctx) => Math.max(25 - s.love, 30 - s.health, (ctx.messCount >= 3 ? 15 : 0)),
-    face: 'face-sad.svg',
+    face: 'face-sad.png',
     bodyPose: 'base',
     effect: {},
     line: 'I miss you...',

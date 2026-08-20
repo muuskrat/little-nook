@@ -97,7 +97,7 @@ document.getElementById('modal-overlay').addEventListener('click', (e) => {
 });
 
 // Renders an item's icon. Today many icons are emoji placeholders; once you
-// have hand-drawn icons, point `icon` at an image path (e.g. "assets/items/apple.svg")
+// have hand-drawn icons, point `icon` at an image path (e.g. "assets/items/apple.png")
 // and this function will render an <img> instead automatically. Sized in
 // `em` (relative to the containing element's font-size) rather than a fixed
 // pixel size, so it drops into any context that already sizes emoji via

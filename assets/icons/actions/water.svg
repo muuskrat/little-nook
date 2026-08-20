@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — Give Water action. A simple glass. -->
-  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 10 L16 38 C16 40 18 41 24 41 C30 41 32 40 32 38 L34 10 Z"/>
-    <path d="M15.3 22 L32.7 22" stroke-width="2"/>
-  </g>
-</svg>

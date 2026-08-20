@@ -53,10 +53,10 @@ const MONKEY_WALK_MS = 1400; // must match .monkey-decor's left/top transition d
 const MIN_DECOR_SCALE = 0.5;
 const MAX_DECOR_SCALE = 3.2;
 const MESS_ICONS = {
-  spill: 'assets/icons/mess/spill.svg',
-  crumbs: 'assets/icons/mess/crumbs.svg',
-  clutter: 'assets/icons/mess/clutter.svg',
-  peel: 'assets/icons/mess/banana-peel.svg',
+  spill: 'assets/icons/mess/spill.png',
+  crumbs: 'assets/icons/mess/crumbs.png',
+  clutter: 'assets/icons/mess/clutter.png',
+  peel: 'assets/icons/mess/banana-peel.png',
 };
 
 // Body art is organized as one folder per outfit (see items.js's
@@ -64,19 +64,19 @@ const MESS_ICONS = {
 // containing the exact same set of pose files. Picking the right image is
 // always "outfit folder + pose key" — see bodyPath() below. Face art
 // doesn't vary by outfit, only by mood.
-const SLEEP_FACE = 'assets/character/parts/face/face-sleeping.svg';
+const SLEEP_FACE = 'assets/character/parts/face/face-sleeping.png';
 const SLEEP_POSE = 'sleeping';
-const MAD_FACE = 'assets/character/parts/face/face-mad.svg';
-const LOVE_FACE = 'assets/character/parts/face/face-love.svg';
+const MAD_FACE = 'assets/character/parts/face/face-mad.png';
+const LOVE_FACE = 'assets/character/parts/face/face-love.png';
 const TANTRUM_POSE = 'tantrum';
-const CRYING_FACE = 'assets/character/parts/face/face-crying.svg';
+const CRYING_FACE = 'assets/character/parts/face/face-crying.png';
 const TRIP_FALL_POSE = 'tripped';
 const TRIP_SIT_POSE = 'sitting'; // reuses the regular idle "sitting" body art
 // Idle-activity name (see main.js's IDLE_ACTIVITIES) -> pose key.
 const IDLE_POSE_KEYS = { resting: 'resting', sitting: 'sitting', 'playing-alone': 'playing' };
 
 function bodyPath(poseKey) {
-  return `assets/character/parts/body/${bodyType}/${poseKey}.svg`;
+  return `assets/character/parts/body/${bodyType}/${poseKey}.png`;
 }
 
 let store = null;
@@ -377,10 +377,10 @@ export function setBodyType(type) {
   refreshVisual();
 }
 export function setHairType(type) {
-  layerHead.src = `assets/character/parts/head/${type}.svg`;
+  layerHead.src = `assets/character/parts/head/${type}.png`;
 }
 export function setEarsType(type) {
-  layerEars.src = `assets/character/parts/ears/${type}.svg`;
+  layerEars.src = `assets/character/parts/ears/${type}.png`;
 }
 // Which scenery the room is dressed in — see the [data-theme] rules in
 // css/style.css. Doesn't touch anything placed in the room, just the

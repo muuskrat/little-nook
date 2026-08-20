@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — sleep meter. -->
-  <path d="M30 8 C22 9 16 16 16 24 C16 32.8 23.2 40 32 40 C36 40 39.6 38.5 42.3 36 C39 39.7 34.2 42 28.8 42 C18.9 42 10.8 33.9 10.8 24 C10.8 15.5 16.7 8.4 24.6 6.5 C26.4 6.9 28.2 7.7 30 8 Z"
-        fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <g stroke="#4A4038" stroke-width="2.5" stroke-linecap="round">
-    <path d="M36 12 L39 12 M37.5 10.5 L37.5 13.5"/>
-    <path d="M40 18 L42 18 M41 17 L41 19"/>
-  </g>
-</svg>

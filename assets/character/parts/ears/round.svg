@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 320" width="220" height="320">
-  <!-- PLACEHOLDER ART — EARS slot, "round" option: small round bear-like
-       ears sitting mostly atop the head. -->
-  <g fill="none" stroke="#4A4038" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="60" cy="34" r="20"/>
-    <circle cx="162" cy="34" r="20"/>
-  </g>
-</svg>

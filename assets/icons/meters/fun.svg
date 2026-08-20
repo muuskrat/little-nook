@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <!-- PLACEHOLDER ICON — fun meter. -->
-  <g fill="none" stroke="#4A4038" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M24 6 C31 6 35 12 35 18 C35 25 30 30 25.5 31 L26.5 34 L21.5 34 L22.5 31 C18 30 13 25 13 18 C13 12 17 6 24 6 Z"/>
-    <path d="M22 34 L21 40 C21 41.5 22.5 42.5 24 41 C25.5 42.5 27 41.5 27 40 L26 34"/>
-  </g>
-</svg>

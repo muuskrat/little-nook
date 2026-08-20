@@ -26,9 +26,9 @@ const MINIGAME_FOOD_COST = 6;
 const GAMES = [
   { key: 'catch', icon: '🧺', label: 'Snack Catch', blurb: 'Catch falling snacks for 30 seconds. Avoid rocks & socks!', mount: mountCatchGame },
   { key: 'memory', icon: '🧩', label: 'Match & Match', blurb: 'Flip cards to find matching pairs in as few moves as possible.', mount: mountMemoryGame },
-  { key: 'roulette', icon: 'assets/icons/minigames/roulette-wheel.svg', label: 'Lucky Spin', blurb: 'One spin — win food, a drink, or coins, and rarely the jackpot: a free cosmetic or decoration!', mount: mountRouletteGame, cooldownMs: ROULETTE_COOLDOWN_MS },
-  { key: 'flappy', icon: 'assets/icons/minigames/flappy-bird.svg', label: 'Flap Flap', blurb: 'Flap through the gaps between pipes without crashing.', mount: mountFlappyGame },
-  { key: 'sniff', icon: 'assets/icons/minigames/stinky-shoe.svg', label: 'Sneaky Sniff', blurb: "Sniff the stinky shoe — but only when you're not being watched!", mount: mountShoeSniffGame },
+  { key: 'roulette', icon: 'assets/icons/minigames/roulette-wheel.png', label: 'Lucky Spin', blurb: 'One spin — win food, a drink, or coins, and rarely the jackpot: a free cosmetic or decoration!', mount: mountRouletteGame, cooldownMs: ROULETTE_COOLDOWN_MS },
+  { key: 'flappy', icon: 'assets/icons/minigames/flappy-bird.png', label: 'Flap Flap', blurb: 'Flap through the gaps between pipes without crashing.', mount: mountFlappyGame },
+  { key: 'sniff', icon: 'assets/icons/minigames/stinky-shoe.png', label: 'Sneaky Sniff', blurb: "Sniff the stinky shoe — but only when you're not being watched!", mount: mountShoeSniffGame },
 ];
 
 export function openPlayMenu(store) {
