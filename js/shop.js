@@ -5,9 +5,9 @@
 // customization (body/hair/ears — really an outfit + hair + ears, exactly
 // one of each always equipped), and which room/scenery is current.
 
-import { ITEMS, itemsByCategory, decorEffectDescription, CONSUMABLE_CATEGORIES, CUSTOMIZATION_CATEGORIES } from './items.js';
-import { makeUid } from './state.js';
-import { openModal, showToast, renderIcon } from './ui.js';
+import { ITEMS, itemsByCategory, decorEffectDescription, CONSUMABLE_CATEGORIES, CUSTOMIZATION_CATEGORIES, allCollectiblesOwned } from './items.js';
+import { makeUid, allStatsAboveThreshold } from './state.js';
+import { openModal, showToast, renderIcon, showWinScreen } from './ui.js';
 import { renderRoomItems } from './room.js';
 
 const TABS = [
@@ -135,6 +135,25 @@ function buyItem(itemId) {
   persist();
   showToast(`Bought ${item.name}!`);
   renderTabContent();
+  renderTrophyButton();
+}
+
+// The trophy becomes pressable once every collectible item is owned AND
+// every stat is at least 75% (see allCollectiblesOwned() in items.js and
+// allStatsAboveThreshold() in state.js) — re-checked every time it might
+// have changed (buying the last item, or just reopening the shop later)
+// rather than only once at open time, since money/stats keep moving. Once
+// it's actually been clicked/viewed once, state.hasWon keeps it pressable
+// forever after, even if stats later slip back below 75%.
+function renderTrophyButton() {
+  const btn = document.getElementById('shop-trophy');
+  if (!btn) return;
+  const { state } = store;
+  const complete = state.hasWon || (allCollectiblesOwned(state.owned) && allStatsAboveThreshold(state.stats));
+  btn.disabled = !complete;
+  btn.title = complete
+    ? 'You collected everything and kept every need thriving — see your reward!'
+    : 'Collect everything in the shop and keep every stat at 75% or above to unlock this.';
 }
 
 function placeItem(itemId) {
@@ -184,7 +203,10 @@ export function openShop(appStore) {
 
   const wrap = document.createElement('div');
   wrap.innerHTML = `
-    <h2>🛍️ Shop</h2>
+    <div class="shop-header-row">
+      <h2>🛍️ Shop</h2>
+      <button id="shop-trophy" class="trophy-btn" disabled>🏆</button>
+    </div>
     <div class="tab-row" id="shop-tabs">
       ${TABS.map((t) => `<button class="tab-btn ${t.key === activeTab ? 'active' : ''}" data-tab="${t.key}">${t.label}</button>`).join('')}
     </div>
@@ -192,6 +214,7 @@ export function openShop(appStore) {
   `;
   openModal(wrap);
   renderTabContent();
+  renderTrophyButton();
 
   document.getElementById('shop-tabs').addEventListener('click', (e) => {
     const btn = e.target.closest('.tab-btn');
@@ -201,4 +224,13 @@ export function openShop(appStore) {
     renderTabContent();
   });
   document.getElementById('shop-grid').addEventListener('click', onGridClick);
+  document.getElementById('shop-trophy').addEventListener('click', () => {
+    // Viewing it once is what "winning" means — permanently unlocks the
+    // trophy from here on, even if stats later slip back below 75%.
+    if (!store.state.hasWon) {
+      store.state.hasWon = true;
+      store.persist();
+    }
+    showWinScreen();
+  });
 }

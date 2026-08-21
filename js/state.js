@@ -11,6 +11,13 @@ export function makeUid(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+// True once every stat is at or above `threshold` — used alongside
+// allCollectiblesOwned() in items.js to gate the trophy button in
+// js/shop.js.
+export function allStatsAboveThreshold(stats, threshold = 75) {
+  return STAT_KEYS.every((k) => stats[k] >= threshold);
+}
+
 function defaultState() {
   return {
     version: 2,
@@ -36,6 +43,21 @@ function defaultState() {
     // neglect penalty.
     lastPetAt: Date.now(),
     money: 30,
+    // True forever once the trophy's win screen has been viewed once (see
+    // js/shop.js) — after that it stays viewable on demand even if stats
+    // later drop back below the threshold, so "winning" isn't something
+    // that can be un-done by neglect.
+    hasWon: false,
+    // Day/night clock — see DAY_MS/NIGHT_MS/isNight() below. Total
+    // milliseconds accumulated through the repeating day+night cycle
+    // (never reset, just read modulo the cycle length), so "which day
+    // number are we on" falls straight out of it too. Doesn't advance
+    // while cyclePaused (see main.js's landlord event).
+    dayNightElapsedMs: 0,
+    cyclePaused: false,
+    // Which day number the landlord last collected rent through — see
+    // LANDLORD_EVERY_DAYS/LANDLORD_RENT below.
+    lastLandlordDay: 0,
     minigameCooldowns: {}, // gameKey -> timestamp (ms) when it's playable again, see js/minigames/index.js
     inventory: {},              // consumable itemId -> count owned (unplaced, in "backpack")
     owned: Object.values(DEFAULT_CUSTOMIZATION), // decoration/customization itemIds purchased (one-time) — starts with the free customization options
@@ -91,6 +113,14 @@ export function loadState() {
       equipped,
       walk: { ...base.walk, ...(parsed.walk || {}) },
       roomItems,
+      // cyclePaused only means "the landlord mini-game is open right now"
+      // (see openLandlordEvent() in js/minigames/landlord.js) — it's saved
+      // the moment that starts so a long real-world pause mid-game can't
+      // skip day/night phases, but nothing in a fresh page load could ever
+      // legitimately have that game open. If the tab got closed/refreshed/
+      // crashed while it was up, a saved `true` here would otherwise freeze
+      // the day/night clock forever with no way to unstick it.
+      cyclePaused: false,
     };
     delete merged.placedDecorations;
     if (migratingOld) localStorage.removeItem(OLD_STORAGE_KEY);
@@ -141,6 +171,36 @@ const HEALTH_LOW_NEED_PENALTY_PER_MIN = 1.1;
 const PET_NEGLECT_RAMP_MIN = 5;
 const PET_NEGLECT_MAX_MULT = 4;
 
+// Day/night cycle: 3 minutes of day, 1 minute of night, repeating. Sleep
+// decays faster at night and slower during the day (see applyDecay()'s use
+// of these below) — the only stat the cycle touches.
+const DAY_MS = 3 * 60 * 1000;
+const NIGHT_MS = 1 * 60 * 1000;
+const CYCLE_MS = DAY_MS + NIGHT_MS;
+const NIGHT_SLEEP_DECAY_MULT = 1.3;
+const DAY_SLEEP_DECAY_MULT = 0.8;
+// Every 5th in-game day, the landlord collects rent — see applyDecay()'s
+// lastLandlordDay bookkeeping below and openLandlordEvent() in
+// js/minigames/landlord.js for the mini-game that can win it back.
+const LANDLORD_EVERY_DAYS = 5;
+const LANDLORD_RENT = 100;
+
+export function isNight(state) {
+  return ((state.dayNightElapsedMs || 0) % CYCLE_MS) >= DAY_MS;
+}
+
+export function currentDay(state) {
+  return Math.floor((state.dayNightElapsedMs || 0) / CYCLE_MS);
+}
+
+// Milliseconds left in whichever phase (day or night) is currently active
+// — used by the day/night badge's hover tooltip (see renderDayNightDisplay()
+// in js/main.js) to show a countdown to the next switch.
+export function msLeftInPhase(state) {
+  const pos = (state.dayNightElapsedMs || 0) % CYCLE_MS;
+  return isNight(state) ? (CYCLE_MS - pos) : (DAY_MS - pos);
+}
+
 // 1 right after petting, ramping up to PET_NEGLECT_MAX_MULT by
 // PET_NEGLECT_RAMP_MIN minutes of neglect and staying there — see
 // applyDecay() (drives the actual extra drain) and
@@ -172,17 +232,28 @@ export function applyDecay(state, now = Date.now()) {
   // faster, a window slows fun decay. See items.js's DECOR_EFFECTS.
   const decor = activeDecorEffects(state.roomItems);
 
+  // The day/night clock pauses during the landlord's mini-game (see
+  // openLandlordEvent() in js/minigames/landlord.js) so a long real-world
+  // pause mid-game can't skip whole day/night phases out from under it.
+  if (!state.cyclePaused) {
+    state.dayNightElapsedMs = (state.dayNightElapsedMs || 0) + minutes * 60000;
+  }
+  // Sleep decays faster at night and slower during the day — only while
+  // awake (asleep, sleep is *gaining*, not decaying — see SLEEP_GAIN_PER_MIN
+  // above, untouched by the cycle).
+  const dayNightSleepDecayMult = isNight(state) ? NIGHT_SLEEP_DECAY_MULT : DAY_SLEEP_DECAY_MULT;
+
   if (state.isSleeping) {
     s.sleep = clamp(s.sleep + SLEEP_GAIN_PER_MIN * (decor.sleepGainMult || 1) * minutes);
-    s.food = clamp(s.food - DECAY_PER_MIN.food * 0.3 * minutes);
-    s.water = clamp(s.water - DECAY_PER_MIN.water * 0.3 * minutes);
+    s.food = clamp(s.food - DECAY_PER_MIN.food * 0.3 * (decor.foodDecayMult || 1) * minutes);
+    s.water = clamp(s.water - DECAY_PER_MIN.water * 0.3 * (decor.waterDecayMult || 1) * minutes);
     // Naps are random-length (see goToSleep() in main.js) rather than
     // always running until fully rested.
     if (s.sleep >= (state.sleepTarget ?? 100)) state.isSleeping = false;
   } else {
-    s.food = clamp(s.food - DECAY_PER_MIN.food * minutes);
-    s.water = clamp(s.water - DECAY_PER_MIN.water * minutes);
-    s.sleep = clamp(s.sleep - DECAY_PER_MIN.sleep * (effect.sleepMult || 1) * minutes);
+    s.food = clamp(s.food - DECAY_PER_MIN.food * (decor.foodDecayMult || 1) * minutes);
+    s.water = clamp(s.water - DECAY_PER_MIN.water * (decor.waterDecayMult || 1) * minutes);
+    s.sleep = clamp(s.sleep - DECAY_PER_MIN.sleep * (effect.sleepMult || 1) * (decor.sleepDecayMult || 1) * dayNightSleepDecayMult * minutes);
     s.fun = clamp(s.fun - DECAY_PER_MIN.fun * (effect.funMult || 1) * (decor.funDecayMult || 1) * minutes);
   }
   s.love = clamp(s.love - DECAY_PER_MIN.love * (effect.loveMult || 1) * petNeglectMult(state, now) * minutes);
@@ -219,7 +290,38 @@ export function applyDecay(state, now = Date.now()) {
   state.petEnergy = clamp((state.petEnergy ?? 100) + INTERACT_ENERGY_REGEN_PER_MIN * minutes);
   state.exerciseEnergy = clamp((state.exerciseEnergy ?? 100) + INTERACT_ENERGY_REGEN_PER_MIN * minutes);
 
+  checkLandlordRent(state);
+
   state.lastUpdate = now;
+  return state;
+}
+
+// Rent: every LANDLORD_EVERY_DAYS-th day boundary crossed since the last
+// visit, silently deduct that many payments (floored at 0 — never goes
+// negative) and stash the total under a transient, unsaved property so the
+// caller can decide how to react — a quiet toast during offline catch-up,
+// or the actual live mini-game during a real-time tick (see main.js, which
+// deletes _landlordTaken right after reading it so it never ends up in a
+// save). Shared by applyDecay() above and advanceToNextDay() below (the
+// dev fast-forward button) so the two can never compute this differently.
+function checkLandlordRent(state) {
+  const periodsOwed = Math.floor(currentDay(state) / LANDLORD_EVERY_DAYS) - Math.floor((state.lastLandlordDay ?? 0) / LANDLORD_EVERY_DAYS);
+  if (periodsOwed > 0) {
+    const owed = periodsOwed * LANDLORD_RENT;
+    state.money = Math.max(0, state.money - owed);
+    state.lastLandlordDay = currentDay(state);
+    state._landlordTaken = (state._landlordTaken || 0) + owed;
+  }
+}
+
+// Dev tool: jumps the day/night clock straight to the start of the next
+// in-game day — used by the "fast-forward" dev button in js/main.js.
+// Still runs the same rent check a real tick would (see checkLandlordRent()
+// above), but doesn't touch food/water/sleep/etc. — it only moves the
+// calendar, not the wall-clock time those decay against.
+export function advanceToNextDay(state) {
+  state.dayNightElapsedMs = (currentDay(state) + 1) * CYCLE_MS;
+  checkLandlordRent(state);
   return state;
 }
 
@@ -236,12 +338,12 @@ export function meterRatePerMin(state, statKey) {
   const effect = emotionEffect(computeEmotion(state, { messCount }));
   const decor = activeDecorEffects(state.roomItems);
 
-  if (statKey === 'food') return -DECAY_PER_MIN.food * (state.isSleeping ? 0.3 : 1);
-  if (statKey === 'water') return -DECAY_PER_MIN.water * (state.isSleeping ? 0.3 : 1);
+  if (statKey === 'food') return -DECAY_PER_MIN.food * (state.isSleeping ? 0.3 : 1) * (decor.foodDecayMult || 1);
+  if (statKey === 'water') return -DECAY_PER_MIN.water * (state.isSleeping ? 0.3 : 1) * (decor.waterDecayMult || 1);
   if (statKey === 'sleep') {
     return state.isSleeping
       ? SLEEP_GAIN_PER_MIN * (decor.sleepGainMult || 1)
-      : -DECAY_PER_MIN.sleep * (effect.sleepMult || 1);
+      : -DECAY_PER_MIN.sleep * (effect.sleepMult || 1) * (decor.sleepDecayMult || 1) * (isNight(state) ? NIGHT_SLEEP_DECAY_MULT : DAY_SLEEP_DECAY_MULT);
   }
   if (statKey === 'fun') {
     let rate = state.isSleeping ? 0 : -DECAY_PER_MIN.fun * (effect.funMult || 1) * (decor.funDecayMult || 1);
@@ -304,14 +406,33 @@ export function meterEffectDescriptions(state, statKey) {
   const messLabel = messCount > 0 ? `${messCount} mess${messCount > 1 ? 'es' : ''}` : null;
   const lines = [];
 
-  if (statKey === 'sleep') {
+  if (statKey === 'food') {
+    const label = decorLabelFor(state.roomItems, 'foodDecayMult');
+    if (label && decor.foodDecayMult && decor.foodDecayMult !== 1) {
+      lines.push(`${label}: food drains ${multDesc(decor.foodDecayMult)}`);
+    }
+  } else if (statKey === 'water') {
+    const label = decorLabelFor(state.roomItems, 'waterDecayMult');
+    if (label && decor.waterDecayMult && decor.waterDecayMult !== 1) {
+      lines.push(`${label}: water drains ${multDesc(decor.waterDecayMult)}`);
+    }
+  } else if (statKey === 'sleep') {
     if (state.isSleeping) {
       const label = decorLabelFor(state.roomItems, 'sleepGainMult');
       if (label && decor.sleepGainMult && decor.sleepGainMult !== 1) {
         lines.push(`${label}: sleep regenerates ${multDesc(decor.sleepGainMult)}`);
       }
-    } else if (moodLabel && effect.sleepMult && effect.sleepMult !== 1) {
-      lines.push(`${moodLabel}: sleep drains ${multDesc(effect.sleepMult)}`);
+    } else {
+      if (moodLabel && effect.sleepMult && effect.sleepMult !== 1) {
+        lines.push(`${moodLabel}: sleep drains ${multDesc(effect.sleepMult)}`);
+      }
+      const label = decorLabelFor(state.roomItems, 'sleepDecayMult');
+      if (label && decor.sleepDecayMult && decor.sleepDecayMult !== 1) {
+        lines.push(`${label}: sleep drains ${multDesc(decor.sleepDecayMult)}`);
+      }
+      lines.push(isNight(state)
+        ? `🌙 Nighttime: sleep drains ${multDesc(NIGHT_SLEEP_DECAY_MULT)}`
+        : `☀️ Daytime: sleep drains ${multDesc(DAY_SLEEP_DECAY_MULT)}`);
     }
   } else if (statKey === 'fun') {
     if (moodLabel && effect.funMult && effect.funMult !== 1) {

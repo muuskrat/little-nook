@@ -456,6 +456,14 @@ export function setSleepingVisual(isSleeping) {
   refreshVisual();
 }
 
+// Toggles the room's nighttime dimming overlay (see #room.night in
+// css/style.css) — driven by isNight(state) in js/state.js via
+// store.persist(), so it stays in sync with the same day/night clock that
+// drives the actual sleep-decay change, purely cosmetic on its own.
+export function setDayNightVisual(isNight) {
+  roomEl.classList.toggle('night', isNight);
+}
+
 // Swaps the pet's face/body art to match its current dominant emotion, and
 // applies that emotion's movement-speed penalty (if any). See emotions.js —
 // this is the hook point for adding more emotion art later.

@@ -40,11 +40,15 @@ export const ITEMS = {
   // image assets under assets/icons/decor/, not emoji.
   plant:        { id: 'plant', name: 'Plant', icon: 'assets/icons/decor/plant.png', price: 20, category: 'decoration' },
   lamp:         { id: 'lamp', name: 'Lamp', icon: 'assets/icons/decor/lamp.png', price: 22, category: 'decoration' },
-  painting:     { id: 'painting', name: 'Painting', icon: 'assets/icons/decor/painting.png', price: 28, category: 'decoration' },
+  // Renamed from "Painting" — same id/icon, just a different in-fiction
+  // object (a fun-decay bonus reads more naturally coming from art
+  // supplies to tinker with than a painting on the wall).
+  painting:     { id: 'painting', name: 'Art Supplies', icon: 'assets/icons/decor/painting.png', price: 28, category: 'decoration' },
   candle:       { id: 'candle', name: 'Candle', icon: 'assets/icons/decor/candle.png', price: 12, category: 'decoration' },
   chair:        { id: 'chair', name: 'Chair', icon: 'assets/icons/decor/chair.png', price: 24, category: 'decoration' },
   window:       { id: 'window', name: 'Window', icon: 'assets/icons/decor/window.png', price: 30, category: 'decoration' },
-  bed:          { id: 'bed', name: 'Bed', icon: 'assets/icons/decor/bed.png', price: 40, category: 'decoration' },
+  // Renamed from "Bed" — same id/icon.
+  bed:          { id: 'bed', name: 'Tatami', icon: 'assets/icons/decor/bed.png', price: 40, category: 'decoration' },
   // Not just cosmetic — the pet actually walks over to eat at a placed
   // table instead of eating wherever the food happens to be sitting (see
   // ACTIVITY_DECOR in js/main.js). No passive bonus, same as plant/lamp/
@@ -58,6 +62,13 @@ export const ITEMS = {
   stink_shoe:   { id: 'stink_shoe', name: 'Stink Shoe', icon: 'assets/icons/minigames/stinky-shoe.png', price: 35, category: 'decoration', requiresRoom: 'room_island' },
   cute_photo:   { id: 'cute_photo', name: 'Cute Photo', icon: 'assets/icons/decor/cute-photo.png', price: 25, category: 'decoration', requiresRoom: 'room_island' },
   miku_plushie: { id: 'miku_plushie', name: 'Miku Plushie', icon: 'assets/icons/decor/miku-plushie.png', price: 38, category: 'decoration', requiresRoom: 'room_snow' },
+  // Gate an entire interaction behind actually owning + placing the
+  // matching gear, rather than a passive stat bonus — see DECOR_UNLOCKS
+  // below and toggleInteraction() in js/main.js.
+  weights:      { id: 'weights', name: 'Weights', icon: 'assets/icons/decor/weights.png', price: 32, category: 'decoration' },
+  toys:         { id: 'toys', name: 'Toys', icon: 'assets/icons/decor/toys.png', price: 28, category: 'decoration' },
+  water_bowl:   { id: 'water_bowl', name: 'Water Bowl', icon: 'assets/icons/decor/water-bowl.png', price: 18, category: 'decoration' },
+  kibble:       { id: 'kibble', name: 'Kibble', icon: 'assets/icons/decor/kibble.png', price: 18, category: 'decoration' },
 
   // Pets: placed in the room like a decoration (same "buy, then place"
   // flow, same roomItems system — see placeItem() in js/shop.js), but kept
@@ -114,6 +125,16 @@ export function itemsByCategory(category) {
 // Which categories a purchase adds to inventory (stackable, used up) vs.
 // state.owned (one-time, permanent) — see isConsumable() in js/shop.js.
 export const CONSUMABLE_CATEGORIES = ['food', 'water', 'medicine'];
+
+// True once every permanent, ownable item in the catalog has been bought —
+// decorations, pets, body/hair/ears options, and rooms, but not food/water/
+// medicine (those are used up, not "collected," so they don't count toward
+// completion). See the trophy button in js/shop.js.
+export function allCollectiblesOwned(owned) {
+  return Object.values(ITEMS)
+    .filter((i) => !CONSUMABLE_CATEGORIES.includes(i.category))
+    .every((i) => owned.includes(i.id));
+}
 // The "always exactly one active" categories — see CUSTOMIZATION_CATEGORIES's
 // use in js/shop.js for the shop-card wording, and state.equipped in
 // state.js for the actual one-per-slot bookkeeping.
@@ -129,8 +150,20 @@ export const DEFAULT_CUSTOMIZATION = { body: 'body_regular', hair: 'hair_long', 
 // multiplicatively — see activeDecorEffects() below.
 export const DECOR_EFFECTS = {
   bed: { sleepGainMult: 1.6 },       // regenerates sleep faster
-  window: { funDecayMult: 0.7 },     // fun decays slower
+  // interactGainMult boosts the stat gains from directly using Pet/Play/
+  // Exercise (see the doXInteraction()/pettingLoop() functions in
+  // js/main.js) — not passive decay, and not Scold.
+  window: { interactGainMult: 1.15 },
   candle: { loveGainMult: 1.15 },    // +15% whenever love increases
+  plant: { funGainMult: 1.10 },      // +10% whenever fun increases
+  painting: { funDecayMult: 0.9 },   // fun decays a little slower
+  chair: { sleepDecayMult: 0.85 },   // sleep drains slower while awake
+  // Halves the base chance of a random trip — see tripChance() in
+  // js/main.js, which multiplies this in alongside the existing
+  // mess-count scaling rather than replacing it.
+  lamp: { tripChanceMult: 0.5 },
+  water_bowl: { waterDecayMult: 0.8 },
+  kibble: { foodDecayMult: 0.8 },
   // See gainFun()/applyEffectPart() in js/main.js for what "fun gain"
   // and "love gain" route through, and healthDrainMult's use in
   // applyDecay()/meterRatePerMin() in js/state.js.
@@ -140,6 +173,17 @@ export const DECOR_EFFECTS = {
   // meter (see applyDecay() in js/state.js) — Pet's and Exercise's meters
   // are untouched.
   miku_plushie: { funGainMult: 1.10, playEnergyRegenMult: 1.5 },
+};
+
+// Some decorations don't grant a passive stat bonus at all — instead,
+// having them placed in the room is what unlocks an entire interaction
+// (see toggleInteraction() in js/main.js, which reads this the same way
+// activeDecorEffects() reads DECOR_EFFECTS). Kept separate from
+// DECOR_EFFECTS since "gates an interaction" isn't a multiplier and
+// doesn't belong in activeDecorEffects()'s merge.
+export const DECOR_UNLOCKS = {
+  weights: 'exercise',
+  toys: 'play',
 };
 
 // Merges the effects of every DECOR_EFFECTS decoration currently placed in
@@ -163,18 +207,29 @@ export function activeDecorEffects(roomItems) {
 // and free to grow as new bonus keys get added.
 const DECOR_EFFECT_LABELS = {
   sleepGainMult: (v) => `Sleep regenerates ${Math.round((v - 1) * 100)}% faster`,
+  sleepDecayMult: (v) => `Sleep drains ${Math.round((1 - v) * 100)}% slower`,
   funDecayMult: (v) => `Fun decays ${Math.round((1 - v) * 100)}% slower`,
   loveGainMult: (v) => `+${Math.round((v - 1) * 100)}% whenever love increases`,
   funGainMult: (v) => `+${Math.round((v - 1) * 100)}% whenever fun increases`,
   healthDrainMult: (v) => `Health drains ${Math.round((1 - v) * 100)}% slower`,
   playEnergyRegenMult: (v) => `Play energy regenerates ${Math.round((v - 1) * 100)}% faster`,
+  interactGainMult: (v) => `+${Math.round((v - 1) * 100)}% from Pet/Play/Exercise`,
+  waterDecayMult: (v) => `Water drains ${Math.round((1 - v) * 100)}% slower`,
+  foodDecayMult: (v) => `Food drains ${Math.round((1 - v) * 100)}% slower`,
+  tripChanceMult: (v) => `${Math.round((1 - v) * 100)}% less likely to trip`,
 };
+
+// Human names for INTERACTIONS keys (see js/main.js) — only used by
+// decorEffectDescription() below to describe a DECOR_UNLOCKS entry.
+const INTERACTION_NAMES = { pet: 'Pet', play: 'Play', exercise: 'Exercise', scold: 'Scold' };
 
 // Human-readable "what does this do" text for a decoration — used both as
 // the shop card description and as the hover tooltip on a placed decoration
 // in the room (see renderRoomItems() in js/room.js). A decoration can grant
 // more than one bonus (e.g. Stink Shoe), so this joins every line it has.
 export function decorEffectDescription(itemId) {
+  const unlocks = DECOR_UNLOCKS[itemId];
+  if (unlocks) return `Unlocks the ${INTERACTION_NAMES[unlocks] || unlocks} interaction`;
   const bonus = DECOR_EFFECTS[itemId];
   if (!bonus) return null;
   const lines = Object.entries(bonus).map(([key, val]) => DECOR_EFFECT_LABELS[key]?.(val)).filter(Boolean);

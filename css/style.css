@@ -132,6 +132,7 @@ html, body {
   #topbar { padding: 8px; gap: 6px; }
   #meters { gap: 5px; }
   #mood-display { padding: 4px 8px; font-size: 11px; }
+  #daynight-display { padding: 4px 8px; font-size: 11px; }
 }
 
 #money-display {
@@ -163,6 +164,29 @@ html, body {
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Day/night cycle — its own strongly color-coded pill (not just an icon)
+   so the phase is obvious at a glance, not just something you'd notice on
+   the room's own subtle dimming. Colors swap with a smooth transition,
+   matching #room-night-overlay's own fade (see setDayNightVisual() in
+   js/room.js, which toggles this same .night class). */
+#daynight-display {
+  display: flex;
+  align-items: center;
+  background: #FCE8A8;
+  color: #6B5416;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.6s ease, color 0.6s ease;
+}
+#daynight-display.night {
+  background: #3A3F6B;
+  color: #E4E1FF;
 }
 
 /* ---------- room ---------- */
@@ -279,6 +303,21 @@ html, body {
   z-index: 10;
 }
 
+/* Day/night dimming — covers the whole room (wall + floor), fades in/out
+   rather than snapping so the transition between phases reads as gradual.
+   z-index sits above the scene (10) but below the interact sidebar/dev
+   buttons/petting meter (15+) so those stay untinted. */
+#room-night-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 24, 60, 0.32);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  z-index: 11;
+}
+#room.night #room-night-overlay { opacity: 1; }
+
 #room-items-layer {
   position: absolute;
   inset: 0;
@@ -366,10 +405,10 @@ html, body {
   #interact-bar .action-btn .btn-icon { width: 15px; height: 15px; }
 }
 
-/* Secret dev buttons: +100 coins / reset bars to 50, for testing. Tucked
-   in a corner, low-key on purpose (not meant to be normal player-facing
-   controls). */
-#btn-dev-coins, #btn-dev-reset {
+/* Secret dev buttons: +100 coins / reset bars to 50 / fast-forward a day /
+   wipe the save, for testing. Tucked in a corner, low-key on purpose (not
+   meant to be normal player-facing controls). */
+#btn-dev-coins, #btn-dev-reset, #btn-dev-fastforward, #btn-dev-reset-game {
   position: absolute;
   top: 4px;
   z-index: 20;
@@ -384,7 +423,9 @@ html, body {
 }
 #btn-dev-coins { left: 4px; }
 #btn-dev-reset { left: 24px; }
-#btn-dev-coins:hover, #btn-dev-reset:hover { opacity: 0.85; }
+#btn-dev-fastforward { left: 44px; }
+#btn-dev-reset-game { left: 64px; }
+#btn-dev-coins:hover, #btn-dev-reset:hover, #btn-dev-fastforward:hover, #btn-dev-reset-game:hover { opacity: 0.85; }
 
 /* Put-away storage button — only shown while carrying a decor item
    (see updateStorageButtonVisibility() in room.js). */
@@ -805,6 +846,33 @@ html, body {
 }
 #modal-overlay.hidden { display: none; }
 
+/* Win screen — sits above the shop modal (z-index 100) so the trophy
+   button can be clicked again without closing the shop first. */
+#win-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 24px;
+  cursor: pointer;
+  animation: win-overlay-fade 0.35s ease;
+}
+#win-overlay.hidden { display: none; }
+@keyframes win-overlay-fade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+#win-image {
+  width: min(92vw, 92vh);
+  height: min(92vw, 92vh);
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
 #modal-panel {
   position: relative;
   background: var(--card);
@@ -836,6 +904,34 @@ html, body {
   margin-top: 0;
   font-size: 19px;
 }
+
+/* Shop header row: title + the trophy button (see openShop() in
+   js/shop.js) that unlocks once everything is collected and every stat is
+   above 90. Sits right next to the title rather than flush right — the
+   modal's own ✕ close button is absolutely positioned in that top-right
+   corner (see #modal-close above), so anything else placed there would
+   overlap it. */
+.shop-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding-right: 34px; /* clears #modal-close regardless */
+}
+.shop-header-row h2 { margin: 0; }
+.trophy-btn {
+  border: none;
+  background: var(--tan);
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+}
+.trophy-btn:not(:disabled):hover { background: var(--gold); transform: scale(1.08); }
+.trophy-btn:disabled { opacity: 0.35; cursor: not-allowed; filter: grayscale(0.6); }
 
 /* generic tab row used by shop/play modals */
 .tab-row {
@@ -1101,6 +1197,36 @@ html, body {
   0% { background: rgba(212, 140, 130, 0.35); }
   100% { background: transparent; }
 }
+
+/* ---------- The Landlord (whack-a-mole rent event) ---------- */
+.landlord-stage {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(180deg, #d8c49a, #b9a274);
+}
+.landlord-hole {
+  position: relative;
+  border-radius: 50%;
+  background: #5c4830;
+  box-shadow: inset 0 8px 14px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.landlord-mole {
+  font-size: 34px;
+  line-height: 1;
+  padding-bottom: 4px;
+  transform: translateY(85%);
+  transition: transform 0.12s ease-out;
+  user-select: none;
+}
+.landlord-hole.up .landlord-mole { transform: translateY(4%); }
 
 /* ---------- mini-game cooldown ---------- */
 .cooldown-msg {

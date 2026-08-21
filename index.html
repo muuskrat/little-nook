@@ -38,6 +38,10 @@
           <div class="meter-track"><div class="meter-fill" id="fill-love"></div></div>
         </div>
       </div>
+      <!-- day/night cycle, kept in sync by renderDayNightDisplay() in js/main.js -->
+      <div id="daynight-display" title="Day/night cycle">
+        <span id="daynight-label">☀️ Day 1</span>
+      </div>
       <!-- current mood, kept in sync by renderMoodDisplay() in js/main.js -->
       <div id="mood-display" title="Current mood">
         <span id="mood-label">😊 Happy</span>
@@ -55,6 +59,10 @@
              for the perspective trapezoid look, which would also clip the
              character/items if they lived inside it) -->
         <div id="room-floor"></div>
+        <!-- Day/night dimming (see setDayNightVisual() in room.js) — covers
+             the wall+floor scene only, stays under the interact sidebar/dev
+             buttons so those don't get tinted too. -->
+        <div id="room-night-overlay"></div>
         <!-- scene-overlay sits on top of both the wall and floor, exactly
              matching the floor's box, but with no clipping — so the pet
              and room items are never cut off near the back wall -->
@@ -78,6 +86,10 @@
         <button id="btn-dev-coins" title="Dev: +100 coins">🐞</button>
         <!-- secret dev button: reset every bar to 50, for testing -->
         <button id="btn-dev-reset" title="Dev: reset bars to 50">🔄</button>
+        <!-- secret dev button: skip to the next in-game day, for testing -->
+        <button id="btn-dev-fastforward" title="Dev: fast-forward to next day">⏩</button>
+        <!-- secret dev button: wipe the save and start over, for testing -->
+        <button id="btn-dev-reset-game" title="Dev: reset entire game">💣</button>
         <!-- appears only while carrying a decor item in Decorate mode -->
         <button id="btn-storage" class="hidden" title="Put away">
           <img src="assets/icons/actions/storage.png" alt="Put away">
@@ -135,6 +147,14 @@
   </div>
 
   <div id="toast" class="hidden"></div>
+
+  <!-- WIN SCREEN: shown once via the shop's trophy button once everything
+       is collected and every stat is above 90 (see js/shop.js) — sits above
+       everything else, including the shop modal, and dismisses on click
+       anywhere so the shop is still right there underneath afterward. -->
+  <div id="win-overlay" class="hidden">
+    <img id="win-image" src="assets/win-screen.png" alt="You did it! Everything collected, every need met.">
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>

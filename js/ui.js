@@ -74,7 +74,15 @@ export function showSpeech(message) {
   bubbleTimer = setTimeout(() => el.classList.add('hidden'), 1800);
 }
 
-export function openModal(innerHtmlOrNode) {
+// `onClose`, if given, fires exactly once — whenever this modal actually
+// closes, however that happens (the ✕ button, clicking the overlay, or a
+// caller's own closeModal() call once its own flow finishes). Lets a modal
+// that started something pausable/stateful (see openLandlordEvent() in
+// js/minigames/landlord.js) clean up even if the player dismisses it
+// early instead of finishing normally.
+let modalCloseCallback = null;
+
+export function openModal(innerHtmlOrNode, { onClose } = {}) {
   const overlay = document.getElementById('modal-overlay');
   const content = document.getElementById('modal-content');
   content.innerHTML = '';
@@ -84,17 +92,36 @@ export function openModal(innerHtmlOrNode) {
     content.appendChild(innerHtmlOrNode);
   }
   overlay.classList.remove('hidden');
+  modalCloseCallback = onClose || null;
 }
 
 export function closeModal() {
   document.getElementById('modal-overlay').classList.add('hidden');
   document.getElementById('modal-content').innerHTML = '';
+  // Cleared before invoking so a callback that itself calls closeModal()
+  // (the normal "finished, collect reward, close" flow) can't re-fire it.
+  const cb = modalCloseCallback;
+  modalCloseCallback = null;
+  if (cb) cb();
 }
 
 document.getElementById('modal-close').addEventListener('click', closeModal);
 document.getElementById('modal-overlay').addEventListener('click', (e) => {
   if (e.target.id === 'modal-overlay') closeModal();
 });
+
+// The one-time-per-session win screen (see the trophy button in
+// js/shop.js) — a separate, higher-z-index overlay from the regular
+// modal so it can show up on top of the shop without closing it, and
+// dismisses on a click anywhere rather than needing a dedicated close
+// button.
+export function showWinScreen() {
+  document.getElementById('win-overlay').classList.remove('hidden');
+}
+export function hideWinScreen() {
+  document.getElementById('win-overlay').classList.add('hidden');
+}
+document.getElementById('win-overlay').addEventListener('click', hideWinScreen);
 
 // Renders an item's icon. Today many icons are emoji placeholders; once you
 // have hand-drawn icons, point `icon` at an image path (e.g. "assets/items/apple.png")

@@ -1,8 +1,8 @@
 // App entry point: wires state, room, shop, and mini-games together, and
 // drives the pet's autonomous behavior (the "AI" loop).
 
-import { loadState, saveState, applyDecay, clamp, makeUid } from './state.js';
-import { ITEMS, itemsByCategory, activeDecorEffects } from './items.js';
+import { loadState, saveState, resetState, applyDecay, advanceToNextDay, clamp, makeUid, isNight, currentDay, msLeftInPhase } from './state.js';
+import { ITEMS, itemsByCategory, activeDecorEffects, DECOR_UNLOCKS } from './items.js';
 import { computeEmotion, emotionLine, emotionReason } from './emotions.js';
 import { renderMeters, showToast, showSpeech, openModal, closeModal, renderIcon, pulseMoneyDisplay } from './ui.js';
 import {
@@ -11,12 +11,21 @@ import {
   showHeartParticle, renderRoomItems, appendRoomItem, removeRoomItem, ROOM_BOUNDS, setIdlePose, setMadVisual, playTantrum,
   stopWalking, setPettingVisual, setPettingFace, setTripPhase, playScoldFlinch, showMoneyParticle,
   flashMonkeyFallen, playMonkeySlide, isBeingCarried, moveMonkeyTo, setWatchingMonkeyVisual, setLoveFaceVisual,
+  setDayNightVisual,
 } from './room.js';
 import { openShop } from './shop.js';
 import { openPlayMenu } from './minigames/index.js';
+import { openLandlordEvent } from './minigames/landlord.js';
 
 const state = loadState();
 applyDecay(state); // catch up on time passed while the game was closed
+// Rent owed while the game was closed is deducted silently (see
+// applyDecay()'s _landlordTaken) — no mini-game on load, just a heads-up.
+if (state._landlordTaken) {
+  const takenWhileAway = state._landlordTaken;
+  delete state._landlordTaken;
+  showToast(`The landlord let himself in while you were away and took ${takenWhileAway} coins.`);
+}
 
 function messCount() {
   return state.roomItems.filter((i) => i.kind === 'mess').length;
@@ -49,6 +58,17 @@ function gainFun(amount) {
   state.stats.fun = clamp(state.stats.fun + amount * decorMult);
 }
 
+// A placed Window boosts the stat rewards from directly using Pet/Play/
+// Exercise specifically (see startPetting()'s pettingLoop(),
+// doPlayInteraction(), doExerciseInteraction() below) — not passive gains
+// elsewhere (eating, cleaning messes, idle activities) and not Scold's
+// punitive numbers. Scales the *input* to gainLove()/gainFun()/clamp at
+// each of those three call sites, on top of (not instead of) those
+// helpers' own decor multipliers.
+function interactGainMult() {
+  return activeDecorEffects(state.roomItems).interactGainMult || 1;
+}
+
 // Applies one (key, value) pair from an item's `effect` object, routing
 // fun/love through their gain helpers above (so a placed Stink Shoe/Miku
 // Plushie/Candle/Cute Photo bonus is never missed) and every other stat
@@ -76,6 +96,8 @@ const playEnergyFill = document.getElementById('play-energy-fill');
 const exerciseEnergyFill = document.getElementById('exercise-energy-fill');
 const moodLabelEl = document.getElementById('mood-label');
 const moodDisplayEl = document.getElementById('mood-display');
+const daynightLabelEl = document.getElementById('daynight-label');
+const daynightDisplayEl = document.getElementById('daynight-display');
 // Energy spent per use of the Pet/Play/Exercise interactions — one shared
 // cost and meter mechanic for all three (see INTERACT_ENERGY_REGEN_PER_MIN
 // in state.js for how fast each refills on its own).
@@ -93,6 +115,17 @@ const INTERACT_TIRED_MESSAGE = {
   play: 'Too tired to play — let the meter fill up.',
   exercise: 'Too tired to exercise — let the meter fill up.',
 };
+// Play/Exercise are locked out entirely until the matching gear (Toys /
+// Weights) is placed in the room — see DECOR_UNLOCKS in items.js. Derived
+// from it (rather than a second hand-written map) so the two can never
+// drift apart: { exercise: 'weights', play: 'toys' }.
+const INTERACT_REQUIRES_DECOR = Object.fromEntries(
+  Object.entries(DECOR_UNLOCKS).map(([itemId, action]) => [action, itemId])
+);
+const INTERACT_LOCKED_MESSAGE = {
+  play: 'Place Toys in the room to unlock Play.',
+  exercise: 'Place Weights in the room to unlock Exercise.',
+};
 
 function hasInteractEnergy(action) {
   return state[INTERACTIONS[action].statKey] >= INTERACT_ENERGY_COST;
@@ -101,11 +134,17 @@ function spendInteractEnergy(action) {
   const key = INTERACTIONS[action].statKey;
   state[key] = clamp(state[key] - INTERACT_ENERGY_COST);
 }
+// True once an interaction needs a decoration it doesn't have placed yet
+// — see toggleInteraction() below for where this actually blocks it.
+function isInteractLocked(action) {
+  const requiredDecor = INTERACT_REQUIRES_DECOR[action];
+  return !!requiredDecor && !findDecoration(requiredDecor);
+}
 function renderInteractEnergyMeters() {
-  for (const { statKey, fill, btn } of Object.values(INTERACTIONS)) {
+  for (const [action, { statKey, fill, btn }] of Object.entries(INTERACTIONS)) {
     const val = state[statKey];
     fill.style.width = `${Math.max(0, Math.min(100, val))}%`;
-    btn.classList.toggle('energy-empty', val < INTERACT_ENERGY_COST);
+    btn.classList.toggle('energy-empty', val < INTERACT_ENERGY_COST || isInteractLocked(action));
   }
 }
 
@@ -155,6 +194,34 @@ function renderMoodDisplay() {
   moodDisplayEl.title = moodReason();
 }
 
+// Strongly color-coded (see #daynight-display.night in css/style.css) so
+// the phase reads at a glance, not just from the room's own subtle
+// dimming (see setDayNightVisual() in room.js, toggled alongside this).
+// Day numbers shown to the player start at 1 — currentDay() itself is
+// 0-indexed (see state.js).
+// "2m 14s" / "48s" — used by renderDayNightDisplay()'s tooltip below. Only
+// refreshes whenever persist() happens to run (every real action, and at
+// least every 15s from the periodic tick — see setInterval() below), not
+// continuously — fine for a hover tooltip, which reads the title text at
+// the moment it's shown rather than live-ticking.
+function formatCountdown(ms) {
+  const totalSecs = Math.max(0, Math.ceil(ms / 1000));
+  const mins = Math.floor(totalSecs / 60);
+  const secs = totalSecs % 60;
+  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+}
+
+function renderDayNightDisplay() {
+  const night = isNight(state);
+  const dayLabel = currentDay(state) + 1;
+  const countdown = formatCountdown(msLeftInPhase(state));
+  daynightLabelEl.textContent = `${night ? '🌙' : '☀️'} Day ${dayLabel}`;
+  daynightDisplayEl.classList.toggle('night', night);
+  daynightDisplayEl.title = night
+    ? `Nighttime — sleep drains 30% faster. ${countdown} left until day.`
+    : `Daytime — sleep drains 20% slower. ${countdown} left until night.`;
+}
+
 const store = {
   state,
   persist() {
@@ -167,19 +234,34 @@ const store = {
     // than only where isSleeping is explicitly toggled.
     setSleepingVisual(state.isSleeping);
     setEmotionVisual(currentEmotion());
+    setDayNightVisual(isNight(state));
+    renderDayNightDisplay();
   },
 };
 
 renderMeters(state);
 initRoom(store);
 setEmotionVisual(currentEmotion());
+setDayNightVisual(isNight(state));
+renderDayNightDisplay();
 renderInteractEnergyMeters();
 window.addEventListener('outfit-changed', () => setCustomization(state.equipped));
 
 // ---- periodic live decay while the app stays open ----
 setInterval(() => {
   applyDecay(state);
-  store.persist();
+  // Unlike the load-time catch-up above, rent discovered *live* here means
+  // the player is actually watching — pause the day/night clock and hand
+  // off to the real whack-a-mole event instead of just quietly deducting.
+  if (state._landlordTaken) {
+    const taken = state._landlordTaken;
+    delete state._landlordTaken;
+    state.cyclePaused = true;
+    store.persist();
+    openLandlordEvent(store, taken);
+  } else {
+    store.persist();
+  }
   maybeComplain();
 }, 15000);
 
@@ -413,7 +495,12 @@ function monkeyTick() {
     store.persist();
   }
 
-  if (!isBeingCarried(monkey.uid) && Math.random() < MONKEY_MOVE_CHANCE) {
+  // isBeingCarried() alone only covers the split-second of an actual drag
+  // — decorateMode being on the rest of the time doesn't stop this timer,
+  // so without this check the monkey could still wander clear across the
+  // room on its own while the player's just browsing/arranging other
+  // items, which reads as it randomly teleporting mid-decorate.
+  if (!decorateMode && !isBeingCarried(monkey.uid) && Math.random() < MONKEY_MOVE_CHANCE) {
     const p = randomFloorPoint();
     monkey.x = p.x;
     monkey.y = p.y;
@@ -449,7 +536,8 @@ let tripComforted = false; // whether this trip's one-time comfort-pet has alrea
 let tripDamage = { health: 0, fun: 0 };
 
 function tripChance(messes) {
-  return Math.min(TRIP_MAX_CHANCE, TRIP_BASE_CHANCE + messes * TRIP_CHANCE_PER_MESS);
+  const decorMult = activeDecorEffects(state.roomItems).tripChanceMult || 1;
+  return Math.min(TRIP_MAX_CHANCE, (TRIP_BASE_CHANCE + messes * TRIP_CHANCE_PER_MESS) * decorMult);
 }
 
 function triggerTrip() {
@@ -831,6 +919,10 @@ function setPendingInteraction(action) {
 
 function toggleInteraction(action) {
   if (pendingInteraction === action) { setPendingInteraction(null); return; }
+  if (isInteractLocked(action)) {
+    showToast(INTERACT_LOCKED_MESSAGE[action]);
+    return;
+  }
   if (INTERACTIONS[action] && !hasInteractEnergy(action)) {
     showToast(INTERACT_TIRED_MESSAGE[action]);
     return;
@@ -908,8 +1000,9 @@ function pettingLoop(ts) {
     pettingFacePhase = nextFacePhase;
     setPettingFace(pettingFacePhase);
   }
-  gainLove(dt * 4);
-  gainFun(dt * 1.5);
+  const mult = interactGainMult();
+  gainLove(dt * 4 * mult);
+  gainFun(dt * 1.5 * mult);
   store.persist();
   pettingRaf = requestAnimationFrame(pettingLoop);
 }
@@ -999,14 +1092,22 @@ window.addEventListener('touchend', endPetting);
 // refill. ----
 function doPlayInteraction() {
   if (state.isSleeping) { disturbSleep(); return; }
+  // Toys could have been picked back up (Decorate mode) since Play was
+  // armed — same double-check hasInteractEnergy() gets below.
+  if (isInteractLocked('play')) {
+    showToast(INTERACT_LOCKED_MESSAGE.play);
+    setPendingInteraction(null);
+    return;
+  }
   if (!hasInteractEnergy('play')) {
     showToast(INTERACT_TIRED_MESSAGE.play);
     setPendingInteraction(null);
     return;
   }
   spendInteractEnergy('play');
-  gainFun(10);
-  gainLove(2);
+  const playMult = interactGainMult();
+  gainFun(10 * playMult);
+  gainLove(2 * playMult);
   state.stats.sleep = clamp(state.stats.sleep - 4);
   bumpPet();
   playIdleAnimation();
@@ -1025,6 +1126,13 @@ const EXERCISE_HEALTH_GAIN = 4;
 const EXERCISE_FUN_GAIN = 4;
 function doExerciseInteraction() {
   if (state.isSleeping) { disturbSleep(); return; }
+  // Weights could have been picked back up (Decorate mode) since Exercise
+  // was armed — same double-check hasInteractEnergy() gets below.
+  if (isInteractLocked('exercise')) {
+    showToast(INTERACT_LOCKED_MESSAGE.exercise);
+    setPendingInteraction(null);
+    return;
+  }
   if (!hasInteractEnergy('exercise')) {
     showToast(INTERACT_TIRED_MESSAGE.exercise);
     setPendingInteraction(null);
@@ -1033,8 +1141,9 @@ function doExerciseInteraction() {
   spendInteractEnergy('exercise');
   state.stats.food = clamp(state.stats.food - EXERCISE_FOOD_COST);
   state.stats.water = clamp(state.stats.water - EXERCISE_WATER_COST);
-  state.stats.health = clamp(state.stats.health + EXERCISE_HEALTH_GAIN);
-  gainFun(EXERCISE_FUN_GAIN);
+  const exerciseMult = interactGainMult();
+  state.stats.health = clamp(state.stats.health + EXERCISE_HEALTH_GAIN * exerciseMult);
+  gainFun(EXERCISE_FUN_GAIN * exerciseMult);
   bumpPet();
   playIdleAnimation();
   showSpeech(['Huff... puff...', '💪', 'Phew!'][Math.floor(Math.random() * 3)]);
@@ -1099,6 +1208,10 @@ window.addEventListener('room-item-removed', (e) => {
     store.persist();
     showToast('Returned to your backpack.');
   } else {
+    // Also covers picking up Toys/Weights — re-render right away so the
+    // Play/Exercise buttons immediately show locked again instead of
+    // waiting for the next periodic tick (see isInteractLocked() above).
+    store.persist();
     showToast('Removed.');
   }
 });
@@ -1204,6 +1317,30 @@ document.getElementById('btn-dev-reset').addEventListener('click', () => {
   renderRoomItems(state);
   store.persist();
   showToast('Bars reset to 50, messes cleared (dev)');
+});
+
+// ---- secret dev button: skip to the next in-game day, for testing ----
+document.getElementById('btn-dev-fastforward').addEventListener('click', () => {
+  advanceToNextDay(state);
+  // A skipped day might have crossed a landlord day too — same live-tick
+  // handling the periodic interval above gives it, so the dev button can't
+  // let rent go uncollected/un-played.
+  if (state._landlordTaken) {
+    const taken = state._landlordTaken;
+    delete state._landlordTaken;
+    state.cyclePaused = true;
+    store.persist();
+    openLandlordEvent(store, taken);
+  } else {
+    store.persist();
+    showToast('Fast-forwarded to the next day (dev)');
+  }
+});
+
+// ---- secret dev button: wipe the save and start over, for testing ----
+document.getElementById('btn-dev-reset-game').addEventListener('click', () => {
+  resetState();
+  location.reload();
 });
 
 document.querySelector('.meter[data-stat="health"]').addEventListener('click', () => useItemModal('medicine', '❤️ Health'));
