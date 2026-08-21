@@ -366,11 +366,11 @@ html, body {
   #interact-bar .action-btn .btn-icon { width: 15px; height: 15px; }
 }
 
-/* Secret dev button: +100 coins, for testing. Tucked in a corner, low-key
-   on purpose (not meant to be a normal player-facing control). */
-#btn-dev-coins {
+/* Secret dev buttons: +100 coins / reset bars to 50, for testing. Tucked
+   in a corner, low-key on purpose (not meant to be normal player-facing
+   controls). */
+#btn-dev-coins, #btn-dev-reset {
   position: absolute;
-  left: 4px;
   top: 4px;
   z-index: 20;
   border: none;
@@ -382,7 +382,9 @@ html, body {
   line-height: 1;
   transition: opacity 0.15s ease;
 }
-#btn-dev-coins:hover { opacity: 0.85; }
+#btn-dev-coins { left: 4px; }
+#btn-dev-reset { left: 24px; }
+#btn-dev-coins:hover, #btn-dev-reset:hover { opacity: 0.85; }
 
 /* Put-away storage button — only shown while carrying a decor item
    (see updateStorageButtonVisibility() in room.js). */

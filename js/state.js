@@ -111,28 +111,28 @@ export function resetState() {
   return defaultState();
 }
 
-// All passive drain rates below are 10x their original tuning (a first
+// All passive drain rates below are 5x their original tuning (a first
 // pass at making neglect actually bite — easy to dial back down, or back
 // up further, from here if it turns out too harsh/too light in practice).
 // Gains (SLEEP_GAIN_PER_MIN, health's passive recovery, INTERACT_ENERGY_
 // REGEN_PER_MIN, every player-action reward) are deliberately untouched —
 // this pass is about drains specifically.
-const DECAY_PER_MIN = { food: 4.5, water: 5.5, sleep: 3.5, fun: 4.0, love: 1.2 };
+const DECAY_PER_MIN = { food: 2.25, water: 2.75, sleep: 1.75, fun: 2.0, love: 0.6 };
 const SLEEP_GAIN_PER_MIN = 4.5;
 // How fast the Pet/Play/Exercise interactions' energy meters refill on
 // their own — see INTERACT_ENERGY_COST in main.js for how much a single
 // use of any of them costs.
 const INTERACT_ENERGY_REGEN_PER_MIN = 40;
 const MAX_CATCHUP_MIN = 60 * 24; // don't punish players for being away more than a day
-const MESS_FUN_PENALTY_PER_MIN = 1.5;
-const MESS_LOVE_PENALTY_PER_MIN = 0.8;
+const MESS_FUN_PENALTY_PER_MIN = 0.75;
+const MESS_LOVE_PENALTY_PER_MIN = 0.4;
 // Health takes a much bigger hit per mess than fun/love do — living in a
 // dirty room is a health hazard, not just an annoyance.
-const MESS_HEALTH_PENALTY_PER_MIN = 5.0;
+const MESS_HEALTH_PENALTY_PER_MIN = 2.5;
 // Health's own penalty for each need (food/water/sleep/fun) currently
 // critically low — shared between applyDecay() and meterRatePerMin() below
 // so the two can never drift apart on what this actually costs.
-const HEALTH_LOW_NEED_PENALTY_PER_MIN = 2.2;
+const HEALTH_LOW_NEED_PENALTY_PER_MIN = 1.1;
 // The longer it's been since the player last used the Pet interaction, the
 // faster love drains — ramping up linearly and capping out at
 // PET_NEGLECT_MAX_MULT once PET_NEGLECT_RAMP_MIN minutes have passed, so
@@ -192,24 +192,30 @@ export function applyDecay(state, now = Date.now()) {
   // Health falls much faster per mess than fun/love do (see
   // MESS_HEALTH_PENALTY_PER_MIN above) — a messy room is a health hazard,
   // not just unpleasant.
+  // A placed Stink Shoe cuts every health drain below by its
+  // healthDrainMult (see DECOR_EFFECTS in items.js) — applied alongside
+  // the mood's own healthPenaltyMult rather than replacing it.
+  const healthDrainMult = decor.healthDrainMult || 1;
   if (messCount > 0) {
     s.fun = clamp(s.fun - MESS_FUN_PENALTY_PER_MIN * messCount * minutes);
     s.love = clamp(s.love - MESS_LOVE_PENALTY_PER_MIN * messCount * minutes);
-    s.health = clamp(s.health - MESS_HEALTH_PENALTY_PER_MIN * messCount * (effect.healthPenaltyMult || 1) * minutes);
+    s.health = clamp(s.health - MESS_HEALTH_PENALTY_PER_MIN * messCount * (effect.healthPenaltyMult || 1) * healthDrainMult * minutes);
   }
 
   const needKeys = ['food', 'water', 'sleep', 'fun'];
   const lowCount = needKeys.filter((k) => s[k] < 25).length;
   const allGreat = needKeys.every((k) => s[k] >= 60);
   if (lowCount > 0) {
-    s.health = clamp(s.health - lowCount * HEALTH_LOW_NEED_PENALTY_PER_MIN * (effect.healthPenaltyMult || 1) * minutes);
+    s.health = clamp(s.health - lowCount * HEALTH_LOW_NEED_PENALTY_PER_MIN * (effect.healthPenaltyMult || 1) * healthDrainMult * minutes);
   } else if (allGreat && messCount === 0) {
     // a spotless room with a well-cared-for pet slowly recovers health —
     // but not while there's still mess dragging it down (see above)
     s.health = clamp(s.health + 0.18 * minutes);
   }
 
-  state.playEnergy = clamp((state.playEnergy ?? 100) + INTERACT_ENERGY_REGEN_PER_MIN * minutes);
+  // A placed Miku Plushie only speeds up Play's own energy meter (see
+  // DECOR_EFFECTS in items.js) — Pet's and Exercise's are unaffected.
+  state.playEnergy = clamp((state.playEnergy ?? 100) + INTERACT_ENERGY_REGEN_PER_MIN * (decor.playEnergyRegenMult || 1) * minutes);
   state.petEnergy = clamp((state.petEnergy ?? 100) + INTERACT_ENERGY_REGEN_PER_MIN * minutes);
   state.exerciseEnergy = clamp((state.exerciseEnergy ?? 100) + INTERACT_ENERGY_REGEN_PER_MIN * minutes);
 
@@ -249,11 +255,12 @@ export function meterRatePerMin(state, statKey) {
   }
   if (statKey === 'health') {
     let rate = 0;
-    if (messCount > 0) rate -= MESS_HEALTH_PENALTY_PER_MIN * messCount * (effect.healthPenaltyMult || 1);
+    const healthDrainMult = decor.healthDrainMult || 1;
+    if (messCount > 0) rate -= MESS_HEALTH_PENALTY_PER_MIN * messCount * (effect.healthPenaltyMult || 1) * healthDrainMult;
     const needKeys = ['food', 'water', 'sleep', 'fun'];
     const lowCount = needKeys.filter((k) => s[k] < 25).length;
     const allGreat = needKeys.every((k) => s[k] >= 60);
-    if (lowCount > 0) rate -= lowCount * HEALTH_LOW_NEED_PENALTY_PER_MIN * (effect.healthPenaltyMult || 1);
+    if (lowCount > 0) rate -= lowCount * HEALTH_LOW_NEED_PENALTY_PER_MIN * (effect.healthPenaltyMult || 1) * healthDrainMult;
     else if (allGreat && messCount === 0) rate += 0.18;
     return rate;
   }
@@ -275,10 +282,11 @@ function multDesc(mult, upWord = 'faster', downWord = 'slower') {
 // back to the item the same way the effect is currently satisfied.
 function decorLabelFor(roomItems, effectKey) {
   const placedIds = new Set((roomItems || []).filter((i) => i.kind === 'decoration').map((i) => i.itemId));
+  const names = [];
   for (const [itemId, effect] of Object.entries(DECOR_EFFECTS)) {
-    if (placedIds.has(itemId) && effect[effectKey] != null) return ITEMS[itemId]?.name || itemId;
+    if (placedIds.has(itemId) && effect[effectKey] != null) names.push(ITEMS[itemId]?.name || itemId);
   }
-  return null;
+  return names.length ? names.join(' + ') : null;
 }
 
 // Human-readable list of whatever's currently changing one meter's rate —
@@ -338,6 +346,12 @@ export function meterEffectDescriptions(state, statKey) {
     const penaltyActive = lowCount > 0 || messCount > 0;
     if (moodLabel && penaltyActive && effect.healthPenaltyMult && effect.healthPenaltyMult !== 1) {
       lines.push(`${moodLabel}: health penalties ${multDesc(effect.healthPenaltyMult, 'worse', 'milder')}`);
+    }
+    if (penaltyActive) {
+      const label = decorLabelFor(state.roomItems, 'healthDrainMult');
+      if (label && decor.healthDrainMult && decor.healthDrainMult !== 1) {
+        lines.push(`${label}: health drains ${multDesc(decor.healthDrainMult)}`);
+      }
     }
     if (messLabel) lines.push(`${messLabel}: draining health`);
     if (allGreat && messCount === 0) lines.push('All needs met: slowly recovering');

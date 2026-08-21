@@ -26,6 +26,7 @@ export const EMOTIONS = {
   happy: {
     face: 'face-neutral.png',
     bodyPose: 'base',
+    reason: () => 'Every need is being met — keep it up!',
   },
   hungry: {
     // food too low
@@ -34,6 +35,7 @@ export const EMOTIONS = {
     bodyPose: 'hungry',
     effect: { funMult: 1.8, loveMult: 1.8 },
     line: "I'm hungry...",
+    reason: (s) => `Food is low (${Math.round(s.food)}/100) — feed your pet.`,
   },
   stuffed: {
     // food too high — ate past full (see the "irresistible" food items in
@@ -43,6 +45,7 @@ export const EMOTIONS = {
     bodyPose: 'stuffed',
     effect: { sleepMult: 1.6, moveMult: 0.6 },
     line: '*sluggish*',
+    reason: (s) => `Food is way too high (${Math.round(s.food)}/100) — it ate past full.`,
   },
   thirsty: {
     // water too low — dehydration hurts health
@@ -51,6 +54,7 @@ export const EMOTIONS = {
     bodyPose: 'base',
     effect: { healthPenaltyMult: 1.6 },
     line: 'So thirsty...',
+    reason: (s) => `Water is low (${Math.round(s.water)}/100) — give your pet water.`,
   },
   exhausted: {
     // sleep too low — moves slowly
@@ -59,6 +63,7 @@ export const EMOTIONS = {
     bodyPose: 'base',
     effect: { moveMult: 0.6 },
     line: 'Getting sleepy...',
+    reason: (s) => `Sleep is low (${Math.round(s.sleep)}/100) — let your pet rest.`,
   },
   bored: {
     // fun too low — love fades faster when bored
@@ -67,14 +72,29 @@ export const EMOTIONS = {
     bodyPose: 'base',
     effect: { loveMult: 1.6 },
     line: "I'm bored...",
+    reason: (s) => `Fun is low (${Math.round(s.fun)}/100) — play with your pet.`,
   },
   sad: {
-    // love/health too low, or the room is a mess
-    test: (s, ctx) => Math.max(25 - s.love, 30 - s.health, (ctx.messCount >= 3 ? 15 : 0)),
+    // love/health too low, or the room has piled up 6+ messes
+    test: (s, ctx) => Math.max(25 - s.love, 30 - s.health, (ctx.messCount >= 6 ? 15 : 0)),
     face: 'face-sad.png',
     bodyPose: 'base',
     effect: {},
     line: 'I miss you...',
+    // Whichever of the three matches how test() above actually picked
+    // 'sad' as the dominant emotion — same priority order (mess, then
+    // love, then health) so this can never name a cause that isn't
+    // really the tallest one.
+    reason: (s, ctx) => {
+      const messSeverity = ctx.messCount >= 6 ? 15 : 0;
+      const loveSeverity = 25 - s.love;
+      const healthSeverity = 30 - s.health;
+      if (messSeverity > 0 && messSeverity >= loveSeverity && messSeverity >= healthSeverity) {
+        return `The room is a mess (${ctx.messCount} messes) — clean it up.`;
+      }
+      if (loveSeverity >= healthSeverity) return `Love is low (${Math.round(s.love)}/100) — give it some Pet time.`;
+      return `Health is low (${Math.round(s.health)}/100).`;
+    },
   },
 };
 
@@ -108,4 +128,14 @@ export function emotionEffect(key) {
 
 export function emotionLine(key) {
   return EMOTIONS[key] && EMOTIONS[key].line;
+}
+
+// Human-readable "why is it feeling this way" text — used by the mood
+// display's hover tooltip (see renderMoodDisplay() in js/main.js). Takes
+// `stats` (state.stats, same as computeEmotion()'s def.test() above) and
+// the same `ctx` ({ messCount }) so a 'sad' caused by mess vs. love vs.
+// health is never misattributed.
+export function emotionReason(key, stats, ctx = {}) {
+  const def = EMOTIONS[key] || EMOTIONS.happy;
+  return def.reason ? def.reason(stats, ctx) : '';
 }

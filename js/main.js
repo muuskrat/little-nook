@@ -3,13 +3,13 @@
 
 import { loadState, saveState, applyDecay, clamp, makeUid } from './state.js';
 import { ITEMS, itemsByCategory, activeDecorEffects } from './items.js';
-import { computeEmotion, emotionLine } from './emotions.js';
+import { computeEmotion, emotionLine, emotionReason } from './emotions.js';
 import { renderMeters, showToast, showSpeech, openModal, closeModal, renderIcon, pulseMoneyDisplay } from './ui.js';
 import {
   initRoom, setSleepingVisual, setCustomization, bumpPet, setDecorateMode, setMoveMode,
   walkPetTo, isPetWalking, getPetPosition, setCarryingVisual, setEmotionVisual,
   showHeartParticle, renderRoomItems, appendRoomItem, removeRoomItem, ROOM_BOUNDS, setIdlePose, setMadVisual, playTantrum,
-  stopWalking, setPettingVisual, setTripPhase, playScoldFlinch, showMoneyParticle,
+  stopWalking, setPettingVisual, setPettingFace, setTripPhase, playScoldFlinch, showMoneyParticle,
   flashMonkeyFallen, playMonkeySlide, isBeingCarried, moveMonkeyTo, setWatchingMonkeyVisual, setLoveFaceVisual,
 } from './room.js';
 import { openShop } from './shop.js';
@@ -39,6 +39,28 @@ function gainLove(amount) {
   state.stats.love = clamp(state.stats.love + amount * LOVE_GAIN_MULT * decorMult);
 }
 
+// Mirrors gainLove() above but for fun, no LOVE_GAIN_MULT-style dampening
+// — a Stink Shoe or Miku Plushie placed in the room gives a bonus to every
+// positive fun gain (not decay), see DECOR_EFFECTS in items.js. Route
+// every explicit fun *increase* through here rather than touching
+// state.stats.fun directly so the bonus is never missed.
+function gainFun(amount) {
+  const decorMult = activeDecorEffects(state.roomItems).funGainMult || 1;
+  state.stats.fun = clamp(state.stats.fun + amount * decorMult);
+}
+
+// Applies one (key, value) pair from an item's `effect` object, routing
+// fun/love through their gain helpers above (so a placed Stink Shoe/Miku
+// Plushie/Candle/Cute Photo bonus is never missed) and every other stat
+// straight through clamp. Shared by eatAt() (applies a whole food effect
+// at once) and the carrying/drinking loop in aiTick() (applies one water
+// item's effect gradually, tick by tick).
+function applyEffectPart(key, val) {
+  if (key === 'fun') gainFun(val);
+  else if (key === 'love') gainLove(val);
+  else state.stats[key] = clamp(state.stats[key] + val);
+}
+
 // ---- DOM refs shared by the store's persist() (interact-energy meters,
 // mood display) and the armed pet/play/exercise/scold interactions further
 // down ----
@@ -53,6 +75,7 @@ const petEnergyFill = document.getElementById('pet-energy-fill');
 const playEnergyFill = document.getElementById('play-energy-fill');
 const exerciseEnergyFill = document.getElementById('exercise-energy-fill');
 const moodLabelEl = document.getElementById('mood-label');
+const moodDisplayEl = document.getElementById('mood-display');
 // Energy spent per use of the Pet/Play/Exercise interactions — one shared
 // cost and meter mechanic for all three (see INTERACT_ENERGY_REGEN_PER_MIN
 // in state.js for how fast each refills on its own).
@@ -112,9 +135,24 @@ function currentMoodKey() {
   return currentEmotion();
 }
 
+// Human-readable "why is it feeling this way" text for the mood display's
+// hover tooltip — mirrors currentMoodKey()'s own branching exactly (same
+// sleeping > crying > mad > dominant-emotion priority) so the tooltip can
+// never name a cause other than the one that's actually driving the face
+// shown right now.
+function moodReason() {
+  if (state.isSleeping) {
+    return `Napping to recover sleep (${Math.round(state.stats.sleep)}/100, waking up around ${Math.round(state.sleepTarget ?? 100)}).`;
+  }
+  if (tripping) return "It just tripped and is a little shaken up — comfort it or give it a moment.";
+  if (isMad()) return madReason || "Something upset it — give it a little space.";
+  return emotionReason(currentEmotion(), state.stats, { messCount: messCount() });
+}
+
 function renderMoodDisplay() {
   const { emoji, label } = MOOD_INFO[currentMoodKey()] || MOOD_INFO.happy;
   moodLabelEl.textContent = `${emoji} ${label}`;
+  moodDisplayEl.title = moodReason();
 }
 
 const store = {
@@ -168,8 +206,11 @@ function maybeComplain() {
 
 const AI_TICK_MS = 1200;
 const DROP_CHANCE = 0.08;
-const REGEN_WATER_PER_TICK = 3;
-const REGEN_FUN_PER_TICK = 0.6;
+// Per-tick dispense rate for each stat a carried drink item can be sipping
+// toward — see aiTick()'s carrying branch below. Only positive effect
+// components end up in carrying.remaining (negative ones, e.g. coffee's
+// water cost, are applied instantly at pickup — see goDrink()).
+const REGEN_PER_TICK = { water: 3, fun: 0.6, love: 0.6, sleep: 1.5, food: 1, health: 1.5 };
 const WANDER_CHANCE = 0.2;
 const RANDOM_MESS_CHANCE = 0.02;
 const IDLE_HOLD_CHANCE = 0.15;
@@ -208,19 +249,21 @@ function foodDesire(item) {
 const MAD_DURATION_MS = 45000;
 const TANTRUM_MESS_CHANCE = 0.1;
 let madUntil = 0;
+let madReason = ''; // set by whichever makeMad() call is currently active — see moodReason() below
 
 function isMad() {
   return Date.now() < madUntil;
 }
 
-function makeMad() {
+function makeMad(reason) {
   madUntil = Date.now() + MAD_DURATION_MS;
+  madReason = reason;
   setMadVisual(true);
 }
 
 function throwTantrum() {
   const petPos = getPetPosition();
-  const p = jitterPoint(petPos.x, petPos.y);
+  const p = avoidInteractBar(jitterPoint(petPos.x, petPos.y));
   const subtype = Math.random() < 0.5 ? 'clutter' : 'crumbs';
   state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype, x: p.x, y: p.y, createdAt: Date.now() });
   playTantrum();
@@ -239,6 +282,22 @@ let idleActivity = null; // { type, until }
 function clearIdleActivity() {
   idleActivity = null;
   setIdlePose(null);
+}
+
+// Plays the same "playing alone" bounce-and-pose animation the pet uses
+// when it wanders off to entertain itself (see IDLE_ACTIVITIES.play
+// above) for a couple of seconds — reused by the Play and Exercise
+// interactions (see doPlayInteraction()/doExerciseInteraction() below) so
+// they visibly *look* like play instead of just changing stats with the
+// pet standing still. Deliberately skips IDLE_ACTIVITIES.play's own
+// funGain/line — those interactions already grant their own reward and
+// show their own speech bubble. aiTick()'s existing idle-activity
+// handling clears it again once `until` passes, same as the autonomous
+// version.
+function playIdleAnimation() {
+  const def = IDLE_ACTIVITIES.play;
+  idleActivity = { type: 'play', until: Date.now() + def.minMs + Math.random() * (def.maxMs - def.minMs) };
+  setIdlePose(def.pose);
 }
 
 // How close the character needs to still be to the pet's *current* spot
@@ -274,7 +333,7 @@ function startIdleActivity(type) {
   const begin = () => {
     idleActivity = { type, until: Date.now() + def.minMs + Math.random() * (def.maxMs - def.minMs) };
     setIdlePose(def.pose);
-    if (def.funGain) state.stats.fun = clamp(state.stats.fun + def.funGain);
+    if (def.funGain) gainFun(def.funGain);
     showSpeech(def.line);
     store.persist();
   };
@@ -407,7 +466,7 @@ function triggerTrip() {
   if (carrying) {
     const petPos = getPetPosition();
     for (let i = 0; i < TRIP_SPILL_COUNT; i++) {
-      const p = jitterPoint(petPos.x, petPos.y, 16);
+      const p = avoidInteractBar(jitterPoint(petPos.x, petPos.y, 16));
       state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype: 'spill', x: p.x, y: p.y, createdAt: Date.now() });
     }
     carrying = null; // gone for good — this isn't a gentle set-down like falling asleep mid-carry
@@ -440,7 +499,7 @@ function comfortDuringTrip() {
   if (tripComforted) return;
   tripComforted = true;
   state.stats.health = clamp(state.stats.health + tripDamage.health * TRIP_RECOVERY_FRACTION);
-  state.stats.fun = clamp(state.stats.fun + tripDamage.fun * TRIP_RECOVERY_FRACTION);
+  gainFun(tripDamage.fun * TRIP_RECOVERY_FRACTION);
   gainLove(TRIP_RECOVERY_LOVE);
   showHeartParticle();
   showSpeech(['There, there...', '💗', "It's okay..."][Math.floor(Math.random() * 3)]);
@@ -451,7 +510,7 @@ function comfortDuringTrip() {
 
 function makeRandomMess() {
   const petPos = getPetPosition();
-  const p = jitterPoint(petPos.x, petPos.y);
+  const p = avoidInteractBar(jitterPoint(petPos.x, petPos.y));
   const subtype = Math.random() < 0.5 ? 'clutter' : 'crumbs';
   state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype, x: p.x, y: p.y, createdAt: Date.now() });
   showSpeech('*makes a mess*');
@@ -476,6 +535,23 @@ function jitterPoint(x, y, radius = 10) {
     x: Math.max(MIN_X, Math.min(MAX_X, x + (Math.random() * 2 - 1) * radius)),
     y: Math.max(MIN_Y, Math.min(MAX_Y, y + (Math.random() * 2 - 1) * radius * 0.7)),
   };
+}
+
+// The always-visible interact sidebar (#interact-bar in css/style.css,
+// docked to the room's right edge) covers roughly the rightmost ~15% and
+// top ~55% of the floor at every supported viewport width — measured via
+// its actual bounding box against #room-floor's. A mess landing under it
+// would still be visible but un-clickable, since the sidebar's buttons sit
+// above it and catch the click first (see z-index in css/style.css). Only
+// applied to mess spawn points — the pet/monkey wandering through that
+// area on their own DOM layer isn't blocked the same way.
+const INTERACT_BAR_MIN_X = 82;
+const INTERACT_BAR_MAX_Y = 58;
+function avoidInteractBar(p) {
+  if (p.x >= INTERACT_BAR_MIN_X && p.y <= INTERACT_BAR_MAX_Y) {
+    return { x: INTERACT_BAR_MIN_X - 4, y: p.y };
+  }
+  return p;
 }
 
 function findRoomItem(kind) {
@@ -521,7 +597,7 @@ function findPlayTarget() {
 function eatAt(item, spot) {
   state.roomItems = state.roomItems.filter((i) => i.uid !== item.uid);
   for (const [key, val] of Object.entries(item.effect)) {
-    state.stats[key] = clamp(state.stats[key] + val);
+    applyEffectPart(key, val);
   }
   gainLove(1);
   bumpPet();
@@ -531,10 +607,10 @@ function eatAt(item, spot) {
   // generic crumbs everything else has.
   const messSubtype = ITEMS[item.itemId]?.messOnEat;
   if (messSubtype) {
-    const p = jitterPoint(spot.x, spot.y);
+    const p = avoidInteractBar(jitterPoint(spot.x, spot.y));
     state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype: messSubtype, x: p.x, y: p.y, createdAt: Date.now() });
   } else if (Math.random() < 0.15) {
-    const p = jitterPoint(spot.x, spot.y);
+    const p = avoidInteractBar(jitterPoint(spot.x, spot.y));
     state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype: 'crumbs', x: p.x, y: p.y, createdAt: Date.now() });
   }
   renderRoomItems(state);
@@ -567,7 +643,15 @@ function goEat(item) {
 function goDrink(item) {
   walkPetTo(item.x, item.y, () => {
     state.roomItems = state.roomItems.filter((i) => i.uid !== item.uid);
-    carrying = { uid: item.uid, itemId: item.itemId, icon: ITEMS[item.itemId].icon, remaining: { ...item.effect } };
+    // A negative component (coffee's water cost, wine's) is applied as an
+    // instant cost right when it's picked up; only the positive part is
+    // sipped gradually below (see aiTick()'s carrying branch).
+    const sipped = {};
+    for (const [key, val] of Object.entries(item.effect)) {
+      if (val < 0) state.stats[key] = clamp(state.stats[key] + val);
+      else sipped[key] = val;
+    }
+    carrying = { uid: item.uid, itemId: item.itemId, icon: ITEMS[item.itemId].icon, remaining: sipped };
     setCarryingVisual(carrying.icon);
     showSpeech('Got it!');
     renderRoomItems(state);
@@ -577,7 +661,7 @@ function goDrink(item) {
 
 function dropCarriedWater() {
   const petPos = getPetPosition();
-  const p = jitterPoint(petPos.x, petPos.y);
+  const p = avoidInteractBar(jitterPoint(petPos.x, petPos.y));
   state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype: 'spill', x: p.x, y: p.y, createdAt: Date.now() });
   carrying = null;
   setCarryingVisual(null);
@@ -650,17 +734,15 @@ function aiTick() {
   if (carrying) {
     if (isPetWalking()) return;
     const rem = carrying.remaining;
-    if ((rem.water || 0) > 0) {
-      const amt = Math.min(REGEN_WATER_PER_TICK, rem.water);
-      state.stats.water = clamp(state.stats.water + amt);
-      rem.water -= amt;
+    let done = true;
+    for (const key of Object.keys(rem)) {
+      const left = rem[key] || 0;
+      if (left <= 0.01) continue;
+      const amt = Math.min(REGEN_PER_TICK[key] ?? 1, left);
+      applyEffectPart(key, amt);
+      rem[key] = left - amt;
+      if (rem[key] > 0.01) done = false;
     }
-    if ((rem.fun || 0) > 0) {
-      const amt = Math.min(REGEN_FUN_PER_TICK, rem.fun);
-      state.stats.fun = clamp(state.stats.fun + amt);
-      rem.fun -= amt;
-    }
-    const done = (rem.water || 0) <= 0.01 && (rem.fun || 0) <= 0.01;
 
     if (!done && Math.random() < DROP_CHANCE) {
       dropCarriedWater();
@@ -783,7 +865,7 @@ function disturbSleep() {
   state.stats.fun = clamp(state.stats.fun - SLEEP_DISTURB_PENALTY);
   state.isSleeping = false;
   setSleepingVisual(false); // apply immediately so the tantrum flash below isn't clobbered by a later persist()
-  makeMad();
+  makeMad('It just got woken up mid-nap.');
   bumpPet();
   showToast("You woke it up — now it's mad!");
   throwTantrum();
@@ -796,14 +878,19 @@ function disturbSleep() {
 // but fill the meter all the way and it tips into annoyed instead (too much
 // of a good thing — see overpetted()). ----
 const PET_METER_FILL_PER_SEC = 35;
+// Same 70% cutoff the meter-fill's own "too much" styling already uses
+// (see updatePettingMeterVisual() below) — the face switches to exhausted
+// in lockstep with the bar turning that color.
+const PETTING_TOO_MUCH_THRESHOLD = 70;
 let petting = false;
 let pettingValue = 0;
 let pettingLastTs = 0;
 let pettingRaf = null;
+let pettingFacePhase = null; // 'gentle' | 'tooMuch' | null — mirrors room.js's own, only re-sent on actual change
 
 function updatePettingMeterVisual() {
   pettingMeterFill.style.width = `${Math.min(100, pettingValue)}%`;
-  pettingMeterFill.classList.toggle('too-much', pettingValue > 70);
+  pettingMeterFill.classList.toggle('too-much', pettingValue > PETTING_TOO_MUCH_THRESHOLD);
 }
 
 function pettingLoop(ts) {
@@ -813,8 +900,16 @@ function pettingLoop(ts) {
   pettingValue += PET_METER_FILL_PER_SEC * dt;
   updatePettingMeterVisual();
   if (pettingValue >= 100) { overpetted(); return; }
+  // Only re-send the face on an actual phase change, not every frame —
+  // reassigning the <img> src 60x/sec would be wasteful even if it's the
+  // same URL each time.
+  const nextFacePhase = pettingValue > PETTING_TOO_MUCH_THRESHOLD ? 'tooMuch' : 'gentle';
+  if (nextFacePhase !== pettingFacePhase) {
+    pettingFacePhase = nextFacePhase;
+    setPettingFace(pettingFacePhase);
+  }
   gainLove(dt * 4);
-  state.stats.fun = clamp(state.stats.fun + dt * 1.5);
+  gainFun(dt * 1.5);
   store.persist();
   pettingRaf = requestAnimationFrame(pettingLoop);
 }
@@ -853,6 +948,8 @@ function startPetting() {
   stopWalking();
   clearIdleActivity();
   setPettingVisual(true);
+  pettingFacePhase = 'gentle';
+  setPettingFace(pettingFacePhase);
   pettingMeterEl.classList.remove('hidden');
   updatePettingMeterVisual();
   pettingRaf = requestAnimationFrame(pettingLoop);
@@ -864,6 +961,8 @@ function endPetting() {
   if (pettingRaf) cancelAnimationFrame(pettingRaf);
   pettingRaf = null;
   setPettingVisual(false);
+  pettingFacePhase = null;
+  setPettingFace(null);
   pettingMeterEl.classList.add('hidden');
   showHeartParticle();
   showSpeech(['❤️', '*happy wiggle*', '😊'][Math.floor(Math.random() * 3)]);
@@ -876,8 +975,14 @@ function overpetted() {
   petting = false;
   pettingRaf = null;
   setPettingVisual(false);
+  // Clear the petting face before makeMad() so refreshVisual() falls
+  // straight through to the mad face instead of briefly re-showing
+  // exhausted (petting-face priority would otherwise still win for one
+  // render — see refreshVisual() in room.js).
+  pettingFacePhase = null;
+  setPettingFace(null);
   pettingMeterEl.classList.add('hidden');
-  makeMad();
+  makeMad('It got petted too much at once.');
   showSpeech(["That's enough!", '😠 Too much!', 'Okay, okay!'][Math.floor(Math.random() * 3)]);
   bumpPet();
   setPendingInteraction(null);
@@ -900,10 +1005,11 @@ function doPlayInteraction() {
     return;
   }
   spendInteractEnergy('play');
-  state.stats.fun = clamp(state.stats.fun + 10);
+  gainFun(10);
   gainLove(2);
   state.stats.sleep = clamp(state.stats.sleep - 4);
   bumpPet();
+  playIdleAnimation();
   showSpeech(['Yay!', 'Again, again!', '🧸'][Math.floor(Math.random() * 3)]);
   setPendingInteraction(null);
   store.persist();
@@ -928,8 +1034,9 @@ function doExerciseInteraction() {
   state.stats.food = clamp(state.stats.food - EXERCISE_FOOD_COST);
   state.stats.water = clamp(state.stats.water - EXERCISE_WATER_COST);
   state.stats.health = clamp(state.stats.health + EXERCISE_HEALTH_GAIN);
-  state.stats.fun = clamp(state.stats.fun + EXERCISE_FUN_GAIN);
+  gainFun(EXERCISE_FUN_GAIN);
   bumpPet();
+  playIdleAnimation();
   showSpeech(['Huff... puff...', '💪', 'Phew!'][Math.floor(Math.random() * 3)]);
   setPendingInteraction(null);
   store.persist();
@@ -946,7 +1053,7 @@ function doScoldInteraction() {
   if (state.isSleeping) { disturbSleep(); return; }
   state.stats.love = clamp(state.stats.love - 6);
   state.stats.fun = clamp(state.stats.fun - 5);
-  makeMad();
+  makeMad('It was just scolded.');
   playScoldFlinch();
   const coins = SCOLD_MONEY_MIN + Math.floor(Math.random() * (SCOLD_MONEY_MAX - SCOLD_MONEY_MIN + 1));
   state.money += coins;
@@ -972,7 +1079,7 @@ window.addEventListener('mess-clicked', (e) => {
   if (!mess) return;
   state.roomItems = state.roomItems.filter((i) => i.uid !== uid);
   gainLove(3);
-  state.stats.fun = clamp(state.stats.fun + 5);
+  gainFun(5);
   showSpeech('Sparkly clean! ✨');
   // Removes just the cleaned mess's own element instead of a full
   // renderRoomItems() rebuild — a rebuild would restart every *other*
@@ -1009,7 +1116,7 @@ function useItemModal(category, title) {
         <div class="item-card">
           <div class="item-icon">${renderIcon(item.icon)}</div>
           <div class="item-name">${item.name}</div>
-          <div class="item-desc">${Object.entries(item.effect).map(([k, v]) => `+${v} ${k}`).join(', ')}</div>
+          <div class="item-desc">${Object.entries(item.effect).map(([k, v]) => `${v >= 0 ? '+' : ''}${v} ${k}`).join(', ')}</div>
           <div class="item-owned">Have: ${count}</div>
           <button class="use-btn" ${actionAttr} ${count > 0 ? '' : 'disabled'} style="${count > 0 ? '' : 'opacity:.5;cursor:not-allowed;'}">${label}</button>
         </div>`;
@@ -1084,6 +1191,19 @@ document.getElementById('btn-dev-coins').addEventListener('click', () => {
   state.money += 100;
   store.persist();
   showToast('+100 coins (dev)');
+});
+
+// ---- secret dev button: reset every bar to 50, for testing ----
+document.getElementById('btn-dev-reset').addEventListener('click', () => {
+  for (const key of Object.keys(state.stats)) state.stats[key] = 50;
+  // Also sweep out any messes — the 'sad' emotion treats 3+ of them as its
+  // own trigger regardless of the stats above (see emotions.js), so a
+  // messy room would otherwise leave the pet looking sad right through a
+  // "reset to 50" and make this button look broken.
+  state.roomItems = state.roomItems.filter((i) => i.kind !== 'mess');
+  renderRoomItems(state);
+  store.persist();
+  showToast('Bars reset to 50, messes cleared (dev)');
 });
 
 document.querySelector('.meter[data-stat="health"]').addEventListener('click', () => useItemModal('medicine', '❤️ Health'));

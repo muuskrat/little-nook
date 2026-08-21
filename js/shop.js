@@ -47,10 +47,18 @@ function cardHtml(item) {
   const owned = state.owned.includes(item.id);
   const count = state.inventory[item.id] || 0;
   const affordable = state.money >= item.price;
+  // Unlock gate for anything gated behind owning a room (see requiresRoom
+  // in items.js) — checked the same way regardless of category, so a
+  // locked consumable/decoration/hair/etc. shows "🔒 Locked" instead of a
+  // live Buy button that would silently no-op (see buyItem()'s own check).
+  const locked = item.requiresRoom && !state.owned.includes(item.requiresRoom);
+  const buyOrLockBtn = locked
+    ? `<button class="buy-btn" disabled>🔒 Locked</button>`
+    : `<button class="buy-btn" data-buy="${item.id}" ${affordable ? '' : 'disabled'}>Buy $${item.price}</button>`;
 
   let footer;
   if (isConsumable(item.category)) {
-    footer = `<button class="buy-btn" data-buy="${item.id}" ${affordable ? '' : 'disabled'}>Buy $${item.price}</button>
+    footer = `${buyOrLockBtn}
       ${count > 0 ? `<div class="item-owned">Have: ${count}</div>` : ''}`;
   } else if (item.category === 'decoration') {
     if (owned && isPlaced(item.id)) {
@@ -58,23 +66,19 @@ function cardHtml(item) {
     } else if (owned) {
       footer = `<button class="use-btn" data-place="${item.id}">Place in room</button>`;
     } else {
-      footer = `<button class="buy-btn" data-buy="${item.id}" ${affordable ? '' : 'disabled'}>Buy $${item.price}</button>`;
+      footer = buyOrLockBtn;
     }
   } else if (item.category === 'pet') {
-    // Same "buy, then place" flow as a decoration, plus an unlock gate for
-    // variants like the beach/ice monkeys (see requiresRoom in items.js)
-    // and a hard cap of one placed pet at a time (see hasPlacedPet()).
-    const locked = item.requiresRoom && !state.owned.includes(item.requiresRoom);
+    // Same "buy, then place" flow as a decoration, plus a hard cap of one
+    // placed pet at a time (see hasPlacedPet()).
     if (owned && isPlaced(item.id)) {
       footer = `<button class="use-btn" disabled>Already placed</button>`;
     } else if (owned && hasPlacedPet()) {
       footer = `<button class="use-btn" disabled>🐒 Already have a pet out</button>`;
     } else if (owned) {
       footer = `<button class="use-btn" data-place="${item.id}">Place in room</button>`;
-    } else if (locked) {
-      footer = `<button class="buy-btn" disabled>🔒 Locked</button>`;
     } else {
-      footer = `<button class="buy-btn" data-buy="${item.id}" ${affordable ? '' : 'disabled'}>Buy $${item.price}</button>`;
+      footer = buyOrLockBtn;
     }
   } else {
     // body / hair / ears / room — always exactly one equipped per category
@@ -84,7 +88,7 @@ function cardHtml(item) {
         ${equipped ? 'Equipped ✓' : 'Equip'}
       </button>`;
     } else {
-      footer = `<button class="buy-btn" data-buy="${item.id}" ${affordable ? '' : 'disabled'}>Buy $${item.price}</button>`;
+      footer = buyOrLockBtn;
     }
   }
 
@@ -92,24 +96,19 @@ function cardHtml(item) {
     <div class="item-card">
       <div class="item-icon">${renderIcon(item.icon)}</div>
       <div class="item-name">${item.name}</div>
-      <div class="item-desc">${effectDesc(item)}</div>
+      <div class="item-desc">${effectDesc(item, locked)}</div>
       ${footer}
     </div>`;
 }
 
-function effectDesc(item) {
-  if (item.effect) return Object.entries(item.effect).map(([k, v]) => `+${v} ${k}`).join(', ');
+function effectDesc(item, locked) {
+  if (locked) return `Unlock by owning ${ITEMS[item.requiresRoom]?.name || 'that room'}`;
+  if (item.effect) return Object.entries(item.effect).map(([k, v]) => `${v >= 0 ? '+' : ''}${v} ${k}`).join(', ');
   if (item.category === 'decoration') {
     const bonus = decorEffectDescription(item.id);
     return bonus ? `Decoration • ${bonus}` : 'Decoration';
   }
-  if (item.category === 'pet') {
-    const { state } = store;
-    if (item.requiresRoom && !state.owned.includes(item.requiresRoom)) {
-      return `Unlock by owning ${ITEMS[item.requiresRoom]?.name || 'that room'}`;
-    }
-    return 'Wanders the room, drops bananas, loves to play';
-  }
+  if (item.category === 'pet') return 'Wanders the room, drops bananas, loves to play';
   if (CUSTOMIZATION_CATEGORIES.includes(item.category)) return 'Customize your pet’s look';
   if (item.category === 'room') return 'Change your room’s scenery';
   return '';

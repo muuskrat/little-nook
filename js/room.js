@@ -68,6 +68,7 @@ const SLEEP_FACE = 'assets/character/parts/face/face-sleeping.png';
 const SLEEP_POSE = 'sleeping';
 const MAD_FACE = 'assets/character/parts/face/face-mad.png';
 const LOVE_FACE = 'assets/character/parts/face/face-love.png';
+const EXHAUSTED_FACE = 'assets/character/parts/face/face-exhausted.png';
 const TANTRUM_POSE = 'tantrum';
 const CRYING_FACE = 'assets/character/parts/face/face-crying.png';
 const TRIP_FALL_POSE = 'tripped';
@@ -166,6 +167,18 @@ export function setPettingVisual(isPetting) {
   petWrap.classList.toggle('petting', isPetting);
 }
 
+// Swaps to a dedicated face while being petted — pass 'gentle' when a hold
+// starts, 'tooMuch' once it's gone on too long, or null to clear it back
+// to the pet's normal emotion face (see refreshVisual() above for exactly
+// which face each phase shows, and startPetting()/pettingLoop()/
+// endPetting()/overpetted() in main.js for when each phase fires). Kept
+// separate from setPettingVisual() since the bounce animation is a simple
+// on/off but the face needs its own two-stage progression.
+export function setPettingFace(phase) {
+  pettingPhase = phase;
+  refreshVisual();
+}
+
 export function getPetPosition() {
   return { ...pos };
 }
@@ -200,11 +213,12 @@ export function showMoneyParticle(amount) {
 
 // ---- pet face/body art: sleeping overrides everything; tripping overrides
 // everything except sleeping (it can't happen while asleep — see main.js);
-// otherwise the mad face overrides the emotion's face, and an idle pose's
-// body overrides the emotion's body. Every toggle (setSleepingVisual,
-// setTripPhase, setIdlePose, setEmotionVisual, setMadVisual) funnels
-// through refreshVisual() so whichever is most specific always wins without
-// them fighting over layerFace/layerBody. ----
+// otherwise a petting-hold face (see setPettingFace()) overrides the mad
+// face, which overrides the emotion's face, and an idle pose's body
+// overrides the emotion's body. Every toggle (setSleepingVisual,
+// setTripPhase, setPettingFace, setIdlePose, setEmotionVisual,
+// setMadVisual) funnels through refreshVisual() so whichever is most
+// specific always wins without them fighting over layerFace/layerBody. ----
 let currentEmotion = 'happy';
 let sleepingNow = false;
 let madNow = false;
@@ -212,6 +226,7 @@ let loveFaceActive = false; // see setLoveFaceVisual()
 let activePose = null; // 'resting' | 'sitting' | 'playing-alone' | null
 let tantrumActive = false;
 let tripPhase = null; // 'falling' | 'sitting' | null — see setTripPhase()
+let pettingPhase = null; // 'gentle' | 'tooMuch' | null — see setPettingFace()
 
 function refreshVisual() {
   // A tantrum flash (see playTantrum) is a brief, deliberate override —
@@ -232,11 +247,22 @@ function refreshVisual() {
   }
   const { face, bodyPose } = emotionAssetPaths(currentEmotion);
   const pose = activePose ? IDLE_POSE_KEYS[activePose] : bodyPose;
-  // The love face (happily watching a placed pet play — see
-  // setLoveFaceVisual()) only ever overrides the face, not the body pose,
-  // so it layers on top of whatever pose/emotion is already showing.
-  layerFace.src = loveFaceActive ? LOVE_FACE : (madNow ? MAD_FACE : face);
   layerBody.src = bodyPath(pose);
+  if (pettingPhase) {
+    // Peaceful/eyes-closed at first, switching to the exhausted face once
+    // the hold has gone on too long (see PET_METER_FILL_PER_SEC's 70%
+    // "too much" threshold in main.js's pettingLoop()). Cleared back to
+    // null the moment the hold ends, one way or another — see
+    // endPetting()/overpetted() in main.js — so a failed hold falls
+    // straight through to the mad face below instead of getting stuck.
+    layerFace.src = pettingPhase === 'tooMuch' ? EXHAUSTED_FACE : SLEEP_FACE;
+  } else {
+    // The love face (happily watching a placed pet play — see
+    // setLoveFaceVisual()) only ever overrides the face, not the body
+    // pose, so it layers on top of whatever pose/emotion is already
+    // showing.
+    layerFace.src = loveFaceActive ? LOVE_FACE : (madNow ? MAD_FACE : face);
+  }
 }
 
 // Toggles the heart-eyed "love" face — shown while happily watching a
