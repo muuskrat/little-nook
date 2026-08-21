@@ -14,6 +14,7 @@ import {
   setDayNightVisual,
 } from './room.js';
 import { openShop } from './shop.js';
+import { openHelp } from './help.js';
 import { openPlayMenu } from './minigames/index.js';
 import { openLandlordEvent } from './minigames/landlord.js';
 
@@ -1298,6 +1299,7 @@ document.getElementById('btn-feed').addEventListener('click', () => useItemModal
 document.getElementById('btn-water').addEventListener('click', () => useItemModal('water', '💧 Give Water'));
 document.getElementById('btn-play').addEventListener('click', () => openPlayMenu(store));
 document.getElementById('btn-shop').addEventListener('click', () => openShop(store));
+document.getElementById('btn-help').addEventListener('click', () => openHelp());
 
 // ---- secret dev button: +100 coins, for testing ----
 document.getElementById('btn-dev-coins').addEventListener('click', () => {

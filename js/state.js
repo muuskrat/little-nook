@@ -21,7 +21,7 @@ export function allStatsAboveThreshold(stats, threshold = 75) {
 function defaultState() {
   return {
     version: 2,
-    petName: 'Pet',
+    petName: 'Xinny',
     createdAt: Date.now(),
     lastUpdate: Date.now(),
     isSleeping: false,
@@ -122,6 +122,10 @@ export function loadState() {
       // the day/night clock forever with no way to unstick it.
       cyclePaused: false,
     };
+    // There's no in-game rename feature — "Pet" only ever got there as the
+    // old default (see defaultState() above), never a deliberate choice —
+    // so a save still carrying it picks up the new default name too.
+    if (merged.petName === 'Pet') merged.petName = 'Xinny';
     delete merged.placedDecorations;
     if (migratingOld) localStorage.removeItem(OLD_STORAGE_KEY);
     return merged;

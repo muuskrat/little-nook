@@ -905,6 +905,28 @@ html, body {
   font-size: 19px;
 }
 
+/* ---------- help modal (see js/help.js) ---------- */
+.help-content { display: flex; flex-direction: column; gap: 8px; }
+.help-section {
+  background: var(--card);
+  border: 2px solid var(--tan);
+  border-radius: 12px;
+  padding: 4px 12px;
+}
+.help-section summary {
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 0;
+  list-style: none;
+}
+.help-section summary::-webkit-details-marker { display: none; }
+.help-section summary::before { content: '▸ '; color: var(--ink-soft); }
+.help-section[open] summary::before { content: '▾ '; }
+.help-section p { margin: 0 0 10px; line-height: 1.45; font-size: 14px; }
+.help-section p:last-child { margin-bottom: 12px; }
+.help-section ul { margin: 0 0 12px; padding-left: 20px; line-height: 1.5; font-size: 14px; }
+.help-section li { margin-bottom: 4px; }
+
 /* Shop header row: title + the trophy button (see openShop() in
    js/shop.js) that unlocks once everything is collected and every stat is
    above 90. Sits right next to the title rather than flush right — the
