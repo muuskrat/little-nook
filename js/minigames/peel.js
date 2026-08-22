@@ -28,13 +28,15 @@
 // param) — a little for Epic, more for Legendary — so a great roll reads
 // as visibly special the moment it's revealed, not just via its text label.
 //
-// How brown the banana turns out to be *overall* (the average across all 3
-// sections, which a single section's own good or bad reading doesn't
-// necessarily predict) decides its rarity tier and how many coins it's
-// worth: a mostly-fresh banana is the rare, valuable case, while an
-// everyday somewhat-browned one is common and worth little. Nothing about
-// the peeling mechanic itself needs to know about rarity; QUALITY_TIERS is
-// just a lookup table keyed by that one average.
+// The banana's overall rarity/payout is a blend of its average freshness
+// and its single *best* section's freshness (see endGame()'s
+// effectiveFreshness) rather than a flat average — a flat average let a
+// genuinely great individual peel (the exciting per-section verdict above)
+// get quietly buried by two mediocre ones, so landing a Legendary or Epic
+// section felt like flavor text disconnected from the actual payout.
+// Blending in the best section means one great peel visibly pulls the
+// overall tier up, while the average half still keeps three-great-sections
+// worth more than one lucky one.
 //
 // Built from the same two layered images each time — full copies of both
 // the whole banana and the peeled banana, each split into 3 independently
@@ -209,8 +211,14 @@ export function mountPeelBananaGame(container, { onEnd }) {
     running = false;
     sections.forEach((el) => el.removeEventListener('click', onSectionClick));
 
-    const avgBrown = brownness.reduce((a, b) => a + b, 0) / PEEL_SECTIONS;
-    const tier = tierForFreshness(100 - avgBrown);
+    const freshnessValues = brownness.map((b) => 100 - b);
+    const avgFreshness = freshnessValues.reduce((a, b) => a + b, 0) / PEEL_SECTIONS;
+    const bestFreshness = Math.max(...freshnessValues);
+    // Half average, half your single best section — see the file header
+    // for why a flat average alone made a great individual peel feel
+    // pointless.
+    const effectiveFreshness = (avgFreshness + bestFreshness) / 2;
+    const tier = tierForFreshness(effectiveFreshness);
     const coins = randInt(tier.coins[0], tier.coins[1]);
 
     const overlay = document.createElement('div');
