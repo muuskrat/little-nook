@@ -523,7 +523,7 @@ never-drifts-out-of-sync guarantee.
 
 ## Mini-games
 
-Six self-contained mini-games, picked from a tabbed modal
+Seven self-contained mini-games, picked from a tabbed modal
 (`openPlayMenu()` in [js/minigames/index.js](js/minigames/index.js)).
 Every game mounts into a plain container and reports what it earned via one
 `onEnd(coins, message?)` callback — `index.js` owns the shared plumbing
@@ -542,14 +542,46 @@ than each game charging it itself, so a new game gets this for free.
 - **Lucky Spin** 🎡 — a roulette wheel that pays out food, a drink, or
   coins, and rarely the jackpot: a free cosmetic or decoration. See
   "Modular by design" below.
-- **Flap Flap** 🐦 — a flappy-bird clone; flap (click/tap/space) to fly
-  through gaps between pipes, 3 coins per pipe cleared. Deliberately more
+- **Flight to Japan** ⛩️ — a flappy-bird clone reskinned as flying toward
+  Japan through a series of torii gates (internally still keyed/named
+  "flappy" in code — only the player-facing label, blurb, and in-game copy
+  changed, see the header comment in
+  [js/minigames/flappy.js](js/minigames/flappy.js)); flap (click/tap/space)
+  to fly through the gaps, 3 coins per gate cleared. Deliberately more
   forgiving than a strict flappy-bird clone: the bird's actual hitbox is a
   few pixels smaller on every side than its visible sprite
-  (`HIT_MARGIN` in [js/minigames/flappy.js](js/minigames/flappy.js), applied
-  to both the pipe collision and the ceiling/floor check), so visibly
-  grazing a pipe by a little doesn't end the run — it reads as a
-  near-miss you got away with rather than an unfair hit.
+  (`HIT_MARGIN`, same file, applied to both the gap collision and the
+  ceiling/floor check), so visibly grazing a gate by a little doesn't end
+  the run — it reads as a near-miss you got away with rather than an
+  unfair hit. Each obstacle is styled as a torii pillar — vermillion, with
+  a black crossbeam overhanging each side (`.flappy-pipe-part` and its
+  `::before`/`::after` in [css/style.css](css/style.css)) — purely a
+  reskin; the actual gap/collision geometry underneath is untouched.
+
+  The "bird" itself isn't a dedicated sprite — it's a little round portrait
+  built from the same per-part art the main character is, showing the
+  pet's own currently-equipped hair and ears over the plain neutral face
+  (not whatever mood it's actually in; a calm expression reads better
+  mid-flap than a random one would) via `buildBirdLayers()`. The crop
+  needs no manual offset math: every hair/ears/face part shares the same
+  tall canvas, so showing each layer at the container's own width (native
+  aspect ratio preserved) and letting `overflow: hidden` clip whatever
+  spills past its height lands the crop just below the hair for any
+  hair/ears combo, not just the default one. The whole portrait is
+  mirrored too (`.flappy-bird-flip` in [css/style.css](css/style.css)) —
+  on its own inner wrapper rather than the outer element directly, since
+  that outer element's `transform` is already being overwritten every
+  frame for position/rotation and would otherwise erase a flip set there.
+  There's no hard circular edge either: instead of a solid border, a
+  radial-gradient `mask-image` fades the whole thing — art and its own
+  cream background alike — out to fully transparent before it reaches the
+  box's edges. That gradient needs an explicit `circle closest-side` size,
+  not just `circle` on its own — the bare keyword defaults to
+  farthest-corner sizing, which stretches the fade out to reach the square
+  box's *corners* specifically, leaving the flatter edge midpoints (a
+  shorter reach from center) still short of fully transparent by the time
+  the corners get there — the fade ends up shaped like the square box
+  instead of an actual circle.
 - **Sneaky Sniff** 👃 — a "Grandma's footsteps"-style timing game: press
   and hold the stinky shoe to sniff it, but a hidden watcher flips between
   watching and not watching on a random timer, and sniffing while watched
@@ -605,14 +637,63 @@ than each game charging it itself, so a new game gets this for free.
   decides the banana's overall rarity — Crap, Common, Rare, Epic, or
   Legendary, color-coded in the end screen — and its payout scales with
   rarity, from a token 1–3 coins for the common Crap case up to 16–25 for
-  the rare Legendary one. Built the same way as Flap Flap's forgiving
+  the rare Legendary one. Built the same way as Flight to Japan's forgiving
   hitbox and the other games' shared plumbing: no game-specific logic
   needed elsewhere, `QUALITY_TIERS` is just a lookup table keyed by that
   one average, reused as-is for both the per-section and overall readings.
 
+- **Xinny Miku Dance** 💃 — a DDR-style rhythm game: arrows fall down 4
+  lanes toward a fixed target near the bottom of each; press the matching
+  arrow key (or tap its target) right as one arrives. Picking Easy, Medium,
+  or Hard is the game's own first screen (`renderDifficultyPicker()` in
+  [js/minigames/dance.js](js/minigames/dance.js)) rather than something
+  `index.js`'s picker modal needs to know about — mount() is still called
+  exactly once by the generic Start button, same as every other game;
+  choosing a difficulty just swaps this module's own container content from
+  the picker to the real dance-stage markup and starts the round. A single
+  `DIFFICULTIES` lookup table (same file) drives every difficulty knob at
+  once: note count (14/18/24), how fast notes are spawned and fall, how
+  wide the timing windows are, how often the same lane is allowed to repeat
+  back-to-back (`rerollChance` — high on Easy so repeats essentially never
+  happen, low on Hard so they're common and each has to be reacted to on
+  its own), and the coin payout per note (2/3/4 for a good hit, scaling up
+  for perfect) — so Hard is both the hardest *and* the most lucrative
+  difficulty, not just the hardest.
+
+  Each difficulty still runs on a fixed-length chart
+  (`buildChart(diff)`) rather than an endless stream — same "one bounded
+  playthrough, then an end screen" shape every other mini-game here has.
+  Timing is judged into perfect/good/miss using a real elapsed-time clock
+  rather than pixel position — each note carries its own scheduled
+  `hitTime`, and a keypress is only ever matched against the closest
+  *unjudged* note in that lane still within the (difficulty-scaled) good
+  window; a press that doesn't land one — wrong lane, or nothing close
+  enough yet — is simply ignored rather than penalized, the same
+  forgiving-by-design choice Flight to Japan's hitbox margin makes. A
+  note's on-screen position is purely cosmetic, driven off that same clock
+  (`progress = (elapsed − spawnTime) / diff.travelMs`) so visuals and
+  judgment can never drift out of sync with each other.
+
+  Xinny dances along in whatever cosmetics are actually equipped — the
+  same body/hair/ears layering (and `typeFromItemId()` convention) Flight
+  to Japan's portrait uses, just full-body this time instead of a cropped
+  head — and reacts differently depending on how each note goes. Any
+  correct hit (perfect or good) swaps her into a random reaction pose:
+  either the "playing" body pose, or the "tripped" pose facing left or
+  right at random (`react()`, same file) — which one is picked is
+  independent of how *well-timed* the hit was; only her face tracks that:
+  neutral for a good hit, the sleeping face for a perfect one, as if she's
+  so in the groove she's dozing through it. A miss instead switches her
+  straight to the tantrum pose with a mad face. Whichever pose that leaves
+  her in just sticks — there's no revert-to-idle timer — until the next
+  note's judgment replaces it, so her stance always reflects how the *last*
+  note actually went rather than snapping back to neutral between hits; the
+  one exception is the very first frame, before any note's been judged yet,
+  which starts on the neutral idle pose (`setIdle()`, same file).
+
 **Lucky Spin has a cooldown before it can be played again — 3 minutes**
 (`cooldownMs` on its entry in the `GAMES` list in
-[js/minigames/index.js](js/minigames/index.js)); the other five currently
+[js/minigames/index.js](js/minigames/index.js)); the other six currently
 have none and can be replayed immediately (`cooldownMs` just omitted —
 `onEnd()` only starts a cooldown when the game actually has one, so this is
 a one-line change per game either way). Where a game does have one, it's a
@@ -636,11 +717,29 @@ needs to change for that.
 **Each new game gets its own custom icon asset** rather than an emoji —
 [assets/icons/minigames/](assets/icons/minigames/) (`roulette-wheel`,
 `flappy-bird`, `stinky-shoe`, `peel-banana-whole` + `peel-banana-peeled`) —
-used both as that game's tab icon in the picker and, for Flap Flap, Sneaky
-Sniff, and Peel Banana, as the actual in-game sprite (the bird you fly, the
-shoe you sniff, the banana you peel). Same swap contract as every other
-icon in the project: replace the file, keep the filename, and it drops
-right in.
+used as that game's tab icon in the picker and, for Sneaky Sniff and Peel
+Banana, as the actual in-game sprite too (the shoe you sniff, the banana
+you peel). Same swap contract as every other icon in the project: replace
+the file, keep the filename, and it drops right in. Flight to Japan is one
+exception: `flappy-bird` is still its tab icon, but the in-game sprite
+isn't a dedicated asset at all anymore — see the Mini-games entry above
+for why. Snack Catch, Match & Match, and Xinny Miku Dance are simpler
+exceptions — 🧺, 🧩, 💃 — plain emoji tab icons rather than hand-drawn
+assets, same as this paragraph's own "rather than an emoji" framing
+already implicitly carves out for any game that doesn't especially need
+one.
+
+**Two games are locked behind owning a specific room, same gate the shop's
+room-exclusive items use** (`requiresRoom` on a `GAMES` entry, checked via
+`isLocked()` in [js/minigames/index.js](js/minigames/index.js) — the exact
+same field name and `state.owned.includes(...)` check `js/shop.js` already
+used for room-exclusive food/decorations/hair, just reused for a game
+instead of an item). Sneaky Sniff needs the Island room owned, Flight to
+Japan needs the Snowy Japan room; a locked game's tab shows a 🔒 in place
+of its icon and its intro screen explains which room unlocks it instead of
+offering a Start button. Every other game has no `requiresRoom` at all and
+is simply never locked — `isLocked()` returns `false` immediately for those
+rather than needing a separate "is this gated?" flag.
 
 ## Running it
 
@@ -753,9 +852,9 @@ hand-drawn art later without touching the game logic:
   mean.
 - `js/shop.js` — shop modal (buy consumables/decorations, place decorations,
   equip outfit/hair/ears/room)
-- `js/minigames/` — the five mini-games (`catch.js`, `memory.js`,
-  `roulette.js`, `flappy.js`, `shoesniff.js`) plus the picker modal and
-  shared cooldown/payout plumbing (`index.js`)
+- `js/minigames/` — the seven mini-games (`catch.js`, `memory.js`,
+  `roulette.js`, `flappy.js`, `shoesniff.js`, `peel.js`, `dance.js`) plus
+  the picker modal and shared cooldown/payout plumbing (`index.js`)
 - `js/ui.js` — small shared helpers (meters, toast, modal)
 - `js/main.js` — wires everything together, the action bar, the dev button,
   and the autonomous pet AI loop (`aiTick()`)

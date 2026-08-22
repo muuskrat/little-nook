@@ -7,12 +7,14 @@
 
 import { openModal, showToast, renderIcon } from '../ui.js';
 import { clamp } from '../state.js';
+import { ITEMS } from '../items.js';
 import { mountCatchGame } from './catch.js';
 import { mountMemoryGame } from './memory.js';
 import { mountRouletteGame } from './roulette.js';
 import { mountFlappyGame } from './flappy.js';
 import { mountShoeSniffGame } from './shoesniff.js';
 import { mountPeelBananaGame } from './peel.js';
+import { mountDanceGame } from './dance.js';
 
 const ROULETTE_COOLDOWN_MS = 3 * 60 * 1000;
 
@@ -28,20 +30,31 @@ const GAMES = [
   { key: 'catch', icon: '🧺', label: 'Snack Catch', blurb: 'Catch falling snacks for 30 seconds. Avoid rocks & socks!', mount: mountCatchGame },
   { key: 'memory', icon: '🧩', label: 'Match & Match', blurb: 'Flip cards to find matching pairs in as few moves as possible.', mount: mountMemoryGame },
   { key: 'roulette', icon: 'assets/icons/minigames/roulette-wheel.png', label: 'Lucky Spin', blurb: 'One spin — win food, a drink, or coins, and rarely the jackpot: a free cosmetic or decoration!', mount: mountRouletteGame, cooldownMs: ROULETTE_COOLDOWN_MS },
-  { key: 'flappy', icon: 'assets/icons/minigames/flappy-bird.png', label: 'Flap Flap', blurb: 'Flap through the gaps between pipes without crashing.', mount: mountFlappyGame },
-  { key: 'sniff', icon: 'assets/icons/minigames/stinky-shoe.png', label: 'Sneaky Sniff', blurb: "Sniff the stinky shoe — but only when you're not being watched!", mount: mountShoeSniffGame },
+  // requiresRoom mirrors the shop's own unlock gate (see requiresRoom in
+  // items.js and the lock check in shop.js) — reused here so these two
+  // games stay locked until the matching room's actually been bought,
+  // same as the room-exclusive food/decorations/hair are.
+  { key: 'flappy', icon: 'assets/icons/minigames/flappy-bird.png', label: 'Flight to Japan', blurb: 'Flap through the torii gates without crashing.', mount: mountFlappyGame, requiresRoom: 'room_snow' },
+  { key: 'sniff', icon: 'assets/icons/minigames/stinky-shoe.png', label: 'Sneaky Sniff', blurb: "Sniff the stinky shoe — but only when you're not being watched!", mount: mountShoeSniffGame, requiresRoom: 'room_island' },
   { key: 'peel', icon: 'assets/icons/minigames/peel-banana-whole.svg', label: 'Peel Banana', blurb: 'Peel all 3 sections — no rush. How browned it turns out to be decides its rarity and payout.', mount: mountPeelBananaGame },
+  { key: 'dance', icon: '💃', label: 'Xinny Miku Dance', blurb: 'Hit the arrows in time with the beat — nail a perfect and she dozes right off mid-move!', mount: mountDanceGame },
 ];
 
 export function openPlayMenu(store) {
   let activeGame = GAMES[0].key;
   let countdownId = null;
 
+  // Same room-ownership gate the shop uses for room-exclusive items (see
+  // requiresRoom in items.js) — a game with no requiresRoom is never locked.
+  function isLocked(game) {
+    return Boolean(game.requiresRoom) && !store.state.owned.includes(game.requiresRoom);
+  }
+
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <h2>🎮 Mini-games</h2>
     <div class="tab-row" id="play-tabs">
-      ${GAMES.map((g) => `<button class="tab-btn ${g.key === activeGame ? 'active' : ''}" data-tab="${g.key}">${renderIcon(g.icon)} ${g.label}</button>`).join('')}
+      ${GAMES.map((g) => `<button class="tab-btn ${g.key === activeGame ? 'active' : ''}" data-tab="${g.key}">${isLocked(g) ? '🔒 ' : renderIcon(g.icon) + ' '}${g.label}</button>`).join('')}
     </div>
     <div id="play-area"></div>
   `;
@@ -56,6 +69,17 @@ export function openPlayMenu(store) {
     clearInterval(countdownId);
     const game = GAMES.find((g) => g.key === gameKey);
     const area = document.getElementById('play-area');
+
+    if (isLocked(game)) {
+      const roomName = ITEMS[game.requiresRoom]?.name || 'that room';
+      area.innerHTML = `
+        <p>${game.blurb}</p>
+        <p class="cooldown-msg">🔒 Unlock by buying the ${roomName} room</p>
+        <button class="primary-btn" id="play-start" disabled>Start</button>
+      `;
+      return;
+    }
+
     const remaining = cooldownRemaining(gameKey);
 
     if (remaining > 0) {

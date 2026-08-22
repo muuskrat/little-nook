@@ -1,6 +1,18 @@
-// "Flap Flap" mini-game: classic flappy-bird clone. Click/tap/space to
-// flap upward against gravity, thread the gaps between pipes. Self-
-// contained: mounts into a container and reports coins earned via onEnd().
+// "Flight to Japan" mini-game (internally still keyed/named "flappy" in
+// code — only the player-facing label, blurb, and in-game copy changed):
+// classic flappy-bird clone. Click/tap/space to flap upward against
+// gravity, thread the gaps between pipes, themed as torii gates on the way
+// to Japan (see .flappy-pipe-part in css/style.css) — purely a visual/copy
+// reskin, the actual gap/collision geometry is untouched. Self-contained:
+// mounts into a container and reports coins earned via onEnd().
+//
+// The "bird" is actually a little round portrait of the player's own pet —
+// its currently-equipped hair and ears layered over the plain neutral face
+// (not whatever mood it's actually in right now; a calm expression reads
+// better at this size and mid-flap than a random one would), reusing the
+// exact same per-part art the main character itself is built from rather
+// than a dedicated sprite. See buildBirdLayers() below for how the crop
+// works.
 
 const BIRD_X = 60;
 const BIRD_SIZE = 34;
@@ -18,16 +30,50 @@ const PIPE_WIDTH = 52;
 const PIPE_INTERVAL_MS = 1400;
 const COINS_PER_PIPE = 3;
 
-export function mountFlappyGame(container, { onEnd }) {
+// itemId looks like "hair_long" / "ears_bunny" — the part after the first
+// underscore is the filename under assets/character/parts/<slot>/, same
+// convention typeFromItemId() in js/room.js uses for the main character;
+// duplicated here rather than exported/imported since it's a one-line
+// helper and this game otherwise has no dependency on room.js.
+function typeFromItemId(itemId) {
+  return itemId.slice(itemId.indexOf('_') + 1);
+}
+
+// Ears, hair, and the plain neutral face, stacked in the same bottom-to-top
+// order the main character's own layers use (ears under hair, face on top)
+// — everything sharing the same 440x640 canvas as the character's other
+// parts, so the *same* crop works for any hair/ears combo without needing
+// per-asset tuning: each layer is shown at the container's own width with
+// its native aspect ratio (`height: auto`), then the container's own
+// `overflow: hidden` simply clips off whatever falls below it. Since the
+// head, hair, and ears all sit within the top portion of that canvas
+// (roughly the top two thirds) and a #flappy-bird-sized container is
+// exactly as wide as the canvas scaled down, that clip line lands just
+// below the hair/ears — no manual crop offset math needed.
+// Wrapped in its own .flappy-bird-flip element (mirrored via CSS) rather
+// than flipped here directly — see that class in css/style.css for why.
+function buildBirdLayers(equipped) {
+  const hairType = typeFromItemId(equipped.hair);
+  const earsType = typeFromItemId(equipped.ears);
+  return `
+    <div class="flappy-bird-flip">
+      <img class="flappy-bird-layer" src="assets/character/parts/ears/${earsType}.png" alt="">
+      <img class="flappy-bird-layer" src="assets/character/parts/head/${hairType}.png" alt="">
+      <img class="flappy-bird-layer" src="assets/character/parts/face/face-neutral.png" alt="">
+    </div>
+  `;
+}
+
+export function mountFlappyGame(container, { store, onEnd }) {
   container.innerHTML = `
     <div class="game-hud">
-      <span>🐦 Flap Flap</span>
+      <span>⛩️ Flight to Japan</span>
       <span>🪙 Score: <span id="flappy-score">0</span></span>
     </div>
     <div class="game-stage" id="flappy-stage">
-      <img class="flappy-bird-sprite" id="flappy-bird" src="assets/icons/minigames/flappy-bird.png" alt="">
+      <div class="flappy-bird-sprite" id="flappy-bird">${buildBirdLayers(store.state.equipped)}</div>
     </div>
-    <p style="font-size:12px;color:var(--ink-soft);margin-top:6px;">Click, tap, or press Space to flap. Avoid the pipes!</p>
+    <p style="font-size:12px;color:var(--ink-soft);margin-top:6px;">Click, tap, or press Space to flap. Avoid the gates!</p>
   `;
 
   const stage = container.querySelector('#flappy-stage');
@@ -134,8 +180,8 @@ export function mountFlappyGame(container, { onEnd }) {
     const overlay = document.createElement('div');
     overlay.className = 'game-overlay-msg';
     overlay.innerHTML = `
-      <div style="font-size:32px;">🐦</div>
-      <div><strong>${score} pipe${score === 1 ? '' : 's'} cleared!</strong></div>
+      <div style="font-size:32px;">⛩️</div>
+      <div><strong>${score} gate${score === 1 ? '' : 's'} cleared!</strong></div>
       <div>You earned ${coins} coins!</div>
       <button class="primary-btn" id="flappy-collect">Collect</button>
     `;
