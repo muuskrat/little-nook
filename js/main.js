@@ -1206,6 +1206,15 @@ let lastClickReactionAt = 0;
 
 function triggerClickReaction() {
   if (state.isSleeping || tripping || tripRecovering || monkeyPlayActive || petting) return;
+  // Interrupts whatever it was doing on its own — walking somewhere, or a
+  // self-directed idle activity (its bounce/settle/hop animation would
+  // otherwise keep fighting the reaction's own pose+squeeze) — same
+  // "this click was more important" precedent startPetting() already sets.
+  // Scoped to only this unarmed-click path, not the 'pet-clicked' listener
+  // itself, so an armed Pet/Play/Exercise/Scold click's own behavior is
+  // completely untouched by this.
+  stopWalking();
+  clearIdleActivity();
   const now = Date.now();
   const withinWindow = now - lastClickReactionAt <= CLICK_REACTION_WINDOW_MS;
   lastClickReactionAt = now;

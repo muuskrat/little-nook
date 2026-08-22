@@ -143,9 +143,18 @@ clicks within the window just re-hold that same stage instead of advancing
 past it or wrapping back to the first — see `triggerClickReaction()` in
 [js/main.js](js/main.js). Every click also gives the character a little
 squeeze via the same `bumpPet()` scale-bounce Play/Exercise/petting already
-use. The whole thing is skipped while asleep, tripping, or mid-reaction with
-a placed pet — the same guard conditions `startPetting()` already checks —
-so it can never fight one of those other transient poses for the same
+use, and interrupts whatever it was doing on its own first — any current
+walk (`stopWalking()`) and any self-directed idle activity
+(`clearIdleActivity()`), same "this click was more important" precedent
+`startPetting()` already sets for Pet — so it can't end up sliding across
+the room, or bouncing through an idle-hop wobble, while showing a pose that
+implies it's standing still (or sitting). Scoped to only this specific
+unarmed-click code path rather than the whole `'pet-clicked'` listener, so
+an armed Pet/Play/Exercise/Scold click's own behavior — including whether
+*it* stops movement — is completely untouched by any of this. The whole
+reaction is skipped while asleep, tripping, or mid-reaction with a placed
+pet — the same guard conditions `startPetting()` already checks — so it can
+never fight one of those other transient poses for the same
 `layerBody`/`layerFace` art. Under the hood, `playClickReaction()` in
 [js/room.js](js/room.js) generalizes the same guard-flag-then-revert shape
 `playTantrum()` already used for its one fixed pose/timing pair into one
