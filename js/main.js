@@ -812,7 +812,7 @@ function goToSleep() {
 }
 
 function aiTick() {
-  if (state.isSleeping || petting || tripping) return;
+  if (state.isSleeping || petting || tripping || sittingLockActive) return;
 
   if (madUntil > 0 && Date.now() >= madUntil) {
     madUntil = 0;
@@ -1204,6 +1204,15 @@ const CLICK_REACTION_WINDOW_MS = 3000;
 let clickReactionStage = 0; // 0 = no sequence in progress
 let lastClickReactionAt = 0;
 
+// True for as long as the final "sitting on the ground" stage is actually
+// showing — blocks aiTick() from walking/picking a new idle activity out
+// from under that pose (see the guard at the top of aiTick() below), and
+// mirrors playClickReaction()'s own re-armable timer so repeated clicks
+// while already sitting keep extending it rather than letting it expire
+// mid-pose.
+let sittingLockActive = false;
+let sittingLockTimer = null;
+
 function triggerClickReaction() {
   if (state.isSleeping || tripping || tripRecovering || monkeyPlayActive || petting) return;
   // Interrupts whatever it was doing on its own — walking somewhere, or a
@@ -1218,12 +1227,31 @@ function triggerClickReaction() {
   const now = Date.now();
   const withinWindow = now - lastClickReactionAt <= CLICK_REACTION_WINDOW_MS;
   lastClickReactionAt = now;
+  const previousStage = clickReactionStage;
   clickReactionStage = withinWindow && clickReactionStage > 0
     ? Math.min(clickReactionStage + 1, CLICK_REACTION_STAGES.length)
     : 1;
   const stage = CLICK_REACTION_STAGES[clickReactionStage - 1];
   bumpPet();
   playClickReaction(stage.body, stage.face, CLICK_REACTION_WINDOW_MS);
+
+  if (clickReactionStage === CLICK_REACTION_STAGES.length) {
+    // Just sat down — clumsy about it, knocks over whatever it was
+    // carrying/nearby. Only spills once per *entering* this stage, not on
+    // every repeat click that just re-holds it.
+    if (previousStage !== CLICK_REACTION_STAGES.length) spillFromSitting();
+    sittingLockActive = true;
+    clearTimeout(sittingLockTimer);
+    sittingLockTimer = setTimeout(() => { sittingLockActive = false; }, CLICK_REACTION_WINDOW_MS);
+  }
+}
+
+function spillFromSitting() {
+  const petPos = getPetPosition();
+  const p = avoidInteractBar(jitterPoint(petPos.x, petPos.y));
+  state.roomItems.push({ uid: makeUid('mess'), kind: 'mess', subtype: 'spill', x: p.x, y: p.y, createdAt: Date.now() });
+  renderRoomItems(state);
+  store.persist();
 }
 
 window.addEventListener('pet-clicked', () => {

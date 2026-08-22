@@ -6,7 +6,7 @@
 // (cooldownMs: 0/undefined means "no cooldown," see cooldownRemaining()).
 
 import { openModal, showToast, renderIcon } from '../ui.js';
-import { clamp } from '../state.js';
+import { clamp, STAT_KEYS } from '../state.js';
 import { ITEMS } from '../items.js';
 import { mountCatchGame } from './catch.js';
 import { mountMemoryGame } from './memory.js';
@@ -19,24 +19,25 @@ import { mountDanceGame } from './dance.js';
 const ROULETTE_COOLDOWN_MS = 30 * 1000;
 
 // Playing takes real effort, regardless of which game or how it goes — a
-// flat cost applied once per session, the moment a game actually starts
-// (not per-attempt within it), shared by every game here rather than each
-// one having to remember to charge it itself.
-const MINIGAME_SLEEP_COST = 6;
-const MINIGAME_LOVE_COST = 3;
-const MINIGAME_FOOD_COST = 6;
+// flat 1-point dip to *every* stat, applied once per session the moment a
+// game actually starts (not per-attempt within it), shared by every game
+// here rather than each one having to remember to charge it itself. Games
+// marked noPenalty (see GAMES below) skip this entirely.
+const MINIGAME_STAT_COST = 1;
 
 const GAMES = [
   { key: 'catch', icon: '🧺', label: 'Snack Catch', blurb: 'Catch falling snacks for 30 seconds. Avoid rocks & socks!', mount: mountCatchGame },
   { key: 'memory', icon: '🧩', label: 'Match & Match', blurb: 'Flip cards to find matching pairs in as few moves as possible.', mount: mountMemoryGame },
-  { key: 'roulette', icon: 'assets/icons/minigames/roulette-wheel.png', label: 'Lucky Spin', blurb: 'One spin — win food, a drink, or coins, and rarely the jackpot: a free cosmetic or decoration!', mount: mountRouletteGame, cooldownMs: ROULETTE_COOLDOWN_MS },
+  // No entry cost — a single low-effort spin, not really "playing a game."
+  { key: 'roulette', icon: 'assets/icons/minigames/roulette-wheel.png', label: 'Lucky Spin', blurb: 'One spin — win food, a drink, or coins, and rarely the jackpot: a free cosmetic or decoration!', mount: mountRouletteGame, cooldownMs: ROULETTE_COOLDOWN_MS, noPenalty: true },
   // requiresRoom mirrors the shop's own unlock gate (see requiresRoom in
   // items.js and the lock check in shop.js) — reused here so these two
   // games stay locked until the matching room's actually been bought,
   // same as the room-exclusive food/decorations/hair are.
   { key: 'flappy', icon: 'assets/icons/minigames/flappy-bird.png', label: 'Flight to Japan', blurb: 'Flap through the torii gates without crashing.', mount: mountFlappyGame, requiresRoom: 'room_snow' },
   { key: 'sniff', icon: 'assets/icons/minigames/stinky-shoe.png', label: 'Sneaky Sniff', blurb: "Sniff the stinky shoe — but only when you're not being watched!", mount: mountShoeSniffGame, requiresRoom: 'room_island' },
-  { key: 'peel', icon: 'assets/icons/minigames/peel-banana-whole.svg', label: 'Peel Banana', blurb: 'Peel all 3 sections — no rush. How browned it turns out to be decides its rarity and payout.', mount: mountPeelBananaGame },
+  // No entry cost — it's a slow, no-rush game by design (see its own blurb).
+  { key: 'peel', icon: 'assets/icons/minigames/peel-banana-whole.svg', label: 'Peel Banana', blurb: 'Peel all 3 sections — no rush. How browned it turns out to be decides its rarity and payout.', mount: mountPeelBananaGame, noPenalty: true },
   { key: 'dance', icon: '💃', label: 'Xinny Miku Dance', blurb: 'Hit the arrows in time with the beat — nail a perfect and she dozes right off mid-move!', mount: mountDanceGame },
 ];
 
@@ -112,9 +113,9 @@ export function openPlayMenu(store) {
     area.style.position = 'relative';
 
     const { state } = store;
-    state.stats.sleep = clamp(state.stats.sleep - MINIGAME_SLEEP_COST);
-    state.stats.love = clamp(state.stats.love - MINIGAME_LOVE_COST);
-    state.stats.food = clamp(state.stats.food - MINIGAME_FOOD_COST);
+    if (!game.noPenalty) {
+      for (const key of STAT_KEYS) state.stats[key] = clamp(state.stats[key] - MINIGAME_STAT_COST);
+    }
     store.persist();
 
     game.mount(area, {
