@@ -12,6 +12,7 @@ import { mountMemoryGame } from './memory.js';
 import { mountRouletteGame } from './roulette.js';
 import { mountFlappyGame } from './flappy.js';
 import { mountShoeSniffGame } from './shoesniff.js';
+import { mountPeelBananaGame } from './peel.js';
 
 const ROULETTE_COOLDOWN_MS = 3 * 60 * 1000;
 
@@ -29,6 +30,7 @@ const GAMES = [
   { key: 'roulette', icon: 'assets/icons/minigames/roulette-wheel.png', label: 'Lucky Spin', blurb: 'One spin — win food, a drink, or coins, and rarely the jackpot: a free cosmetic or decoration!', mount: mountRouletteGame, cooldownMs: ROULETTE_COOLDOWN_MS },
   { key: 'flappy', icon: 'assets/icons/minigames/flappy-bird.png', label: 'Flap Flap', blurb: 'Flap through the gaps between pipes without crashing.', mount: mountFlappyGame },
   { key: 'sniff', icon: 'assets/icons/minigames/stinky-shoe.png', label: 'Sneaky Sniff', blurb: "Sniff the stinky shoe — but only when you're not being watched!", mount: mountShoeSniffGame },
+  { key: 'peel', icon: 'assets/icons/minigames/peel-banana-whole.svg', label: 'Peel Banana', blurb: 'Peel all 3 sections — no rush. How browned it turns out to be decides its rarity and payout.', mount: mountPeelBananaGame },
 ];
 
 export function openPlayMenu(store) {

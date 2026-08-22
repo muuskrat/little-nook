@@ -523,7 +523,7 @@ never-drifts-out-of-sync guarantee.
 
 ## Mini-games
 
-Five self-contained mini-games, picked from a tabbed modal
+Six self-contained mini-games, picked from a tabbed modal
 (`openPlayMenu()` in [js/minigames/index.js](js/minigames/index.js)).
 Every game mounts into a plain container and reports what it earned via one
 `onEnd(coins, message?)` callback — `index.js` owns the shared plumbing
@@ -559,10 +559,60 @@ than each game charging it itself, so a new game gets this for free.
   actually get to react to; going the other way, from watching back to not
   watching, has no tell, since there's nothing to react to on that side
   (`PEEK_WARNING_MS` in [js/minigames/shoesniff.js](js/minigames/shoesniff.js)).
+- **Peel Banana** 🍌 — no timer, no losing condition: the banana is drawn as
+  a thin body tapering to a rounded point at both ends (not a plain
+  cylinder or a curved crescent — see [assets/icons/minigames/peel-banana-
+  whole.svg](assets/icons/minigames/peel-banana-whole.svg)), split into 3
+  equal *vertical* thirds — left, middle, right, like the 3 strips a real
+  banana peel splits into lengthwise — each independently clickable in any
+  order. The wrap element's own on-screen box is sized to that art's exact
+  aspect ratio rather than a generic square (`.peel-banana-wrap` in
+  [css/style.css](css/style.css)) — clip-path percentages are relative to
+  the *box*, not to wherever `object-fit: contain` visually centers the art
+  within it, so a squarer box around art this narrow would have
+  letterboxed hard enough to squeeze nearly the whole visible banana into
+  just the middle clip third, leaving the left/right sections almost
+  entirely empty and unclickable. Clicking a section peels *that* strip
+  (sliding off sideways, away from the banana's own center — the left
+  third slides left, the right slides right), revealing the banana
+  underneath it right there rather than one continuous reveal, and floats
+  up an immediate verdict for just that section, using the *same*
+  Crap-through-Legendary tier names and colors the overall rarity uses
+  (`QUALITY_TIERS`/`spawnQualityLabel()` in
+  [js/minigames/peel.js](js/minigames/peel.js)) — one shared lookup table
+  for both, so a section calling itself "Epic" means the same thing the
+  end screen does.
+
+  **Fresher is better, browner is worse** — every banana secretly rolls how
+  browned/bruised each section is (0–100) *before* a single click happens,
+  invisible until you actually peel that section, where it shows up two
+  ways at once: that floating tier verdict, and a CSS `sepia()` tint scaled
+  to the section's own severity (`rollBrownness()`/`buildBrownFilter()`,
+  same file) — a fresher section stays close to its natural pale color, a
+  browner one visibly darkens toward a bruised look. Being fresh is the
+  rare roll, not the common one: `rollBrownness()` is deliberately skewed
+  toward heavy browning, so a section (or a whole banana) coming up
+  genuinely pristine is the standout case, keeping "Legendary" actually
+  rare instead of what you'd get by simply relabeling the old high-brown-
+  is-good version. An Epic section gets a soft colored glow baked right
+  into its own filter, and a Legendary one glows more — both from extra
+  `drop-shadow()` layers appended in `buildBrownFilter()`, since the sepia
+  amount is already set via an inline `filter` style that a separate CSS
+  class couldn't add to (only replace).
+
+  Once all 3 are peeled, the *average freshness* across them — which a
+  single section's own good or bad reading doesn't necessarily predict —
+  decides the banana's overall rarity — Crap, Common, Rare, Epic, or
+  Legendary, color-coded in the end screen — and its payout scales with
+  rarity, from a token 1–3 coins for the common Crap case up to 16–25 for
+  the rare Legendary one. Built the same way as Flap Flap's forgiving
+  hitbox and the other games' shared plumbing: no game-specific logic
+  needed elsewhere, `QUALITY_TIERS` is just a lookup table keyed by that
+  one average, reused as-is for both the per-section and overall readings.
 
 **Lucky Spin has a cooldown before it can be played again — 3 minutes**
 (`cooldownMs` on its entry in the `GAMES` list in
-[js/minigames/index.js](js/minigames/index.js)); the other four currently
+[js/minigames/index.js](js/minigames/index.js)); the other five currently
 have none and can be replayed immediately (`cooldownMs` just omitted —
 `onEnd()` only starts a cooldown when the game actually has one, so this is
 a one-line change per game either way). Where a game does have one, it's a
@@ -584,12 +634,13 @@ Lucky Spin can award. Nothing in [js/minigames/roulette.js](js/minigames/roulett
 needs to change for that.
 
 **Each new game gets its own custom icon asset** rather than an emoji —
-[assets/icons/minigames/](assets/icons/minigames/) (`roulette-wheel.svg`,
-`flappy-bird.svg`, `stinky-shoe.svg`) — used both as that game's tab icon
-in the picker and, for Flap Flap and Sneaky Sniff, as the actual in-game
-sprite (the bird you fly, the shoe you sniff). Same swap contract as every
-other icon in the project: replace the file, keep the filename, and it
-drops right in.
+[assets/icons/minigames/](assets/icons/minigames/) (`roulette-wheel`,
+`flappy-bird`, `stinky-shoe`, `peel-banana-whole` + `peel-banana-peeled`) —
+used both as that game's tab icon in the picker and, for Flap Flap, Sneaky
+Sniff, and Peel Banana, as the actual in-game sprite (the bird you fly, the
+shoe you sniff, the banana you peel). Same swap contract as every other
+icon in the project: replace the file, keep the filename, and it drops
+right in.
 
 ## Running it
 
@@ -667,8 +718,8 @@ hand-drawn art later without touching the game logic:
   - `icons/mess/` — spill, crumbs, clutter, banana-peel
   - `icons/decor/` — plant, lamp, painting, candle, chair, window, bed, table,
     monkey, monkey-beach, monkey-ice
-  - `icons/minigames/` — roulette-wheel, flappy-bird, stinky-shoe (see
-    "Mini-games" above)
+  - `icons/minigames/` — roulette-wheel, flappy-bird, stinky-shoe,
+    peel-banana-whole, peel-banana-peeled (see "Mini-games" above)
   Same contract as everywhere else: replace a file, keep its filename and a
   roughly square canvas, and it drops right in. Meter/mess/decor icons are
   sized via `em` (so they still scale with a room item's depth);

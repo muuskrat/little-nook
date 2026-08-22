@@ -1250,6 +1250,117 @@ html, body {
 }
 .landlord-hole.up .landlord-mole { transform: translateY(4%); }
 
+/* ---------- Peel Banana ---------- */
+.peel-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.peel-banana-wrap {
+  position: relative;
+  z-index: 0; /* pins down its own stacking context (position:relative alone doesn't) so the sections' own z-index below stays contained instead of leaking out to out-rank the end-game .game-overlay-msg appended as its sibling */
+  /* Matches the art's own 20:64 aspect ratio exactly (see peel-banana-
+     whole.svg's viewBox) rather than a generic square box. This isn't just
+     cosmetic: clip-path percentages are relative to this element's own box,
+     not to wherever object-fit:contain visually centers the art within it
+     — a square box around art this narrow would letterbox so hard that
+     nearly the entire visible banana ends up inside just the *middle*
+     clip third, leaving the left/right sections almost entirely empty and
+     unclickable. Matching the aspect ratio removes the letterboxing
+     entirely, so the 3 equal-width clip thirds line up with 3 actually
+     equal-width thirds of the art. */
+  width: 69px;
+  height: 220px;
+  user-select: none;
+}
+.peel-banana-wrap img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2));
+}
+/* Every section — both the always-there peeled-flesh piece underneath and
+   the whole-banana piece on top of it — is clipped via its own inline
+   clip-path (computed per section in js/minigames/peel.js) to only its own
+   vertical third of the banana (left/middle/right, like the 3 strips a real
+   peel splits into lengthwise). Flesh pieces additionally carry their own
+   inline sepia filter (how browned/bruised that specific section secretly
+   rolled out to be — see rollBrownness()/buildBrownFilter() there),
+   invisible until the whole-banana piece on top of it peels away. */
+.peel-flesh-section { position: absolute; inset: 0; z-index: 1; }
+/* clip-path clips hit-testing along with rendering, so each whole-banana
+   section is only clickable within its own visible strip, with no extra
+   hit-target elements needed. Hovering brightens a section slightly as a
+   discoverability hint that it's its own clickable target, separate from
+   its neighbors. */
+.peel-section {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  cursor: pointer;
+  transition: opacity 0.35s ease, transform 0.35s ease, filter 0.15s ease;
+}
+.peel-section:hover { filter: brightness(1.08); }
+/* Peels off sideways, away from the banana's own center — --peel-out-x/
+   --peel-out-rot are set per click in js/minigames/peel.js based on which
+   third it was (left third slides left, right third slides right), so it
+   reads as a strip actually being pulled off that side rather than every
+   section vanishing the same generic way. */
+.peel-section.peeled {
+  opacity: 0;
+  transform: translate(var(--peel-out-x, 0px), -8px) rotate(var(--peel-out-rot, -10deg));
+  pointer-events: none;
+}
+
+/* A little strip flying off on each click, for juice — see spawnPeelBit()
+   in js/minigames/peel.js, which randomizes direction/rotation per click
+   via the --peel-dx/--peel-dy/--peel-rot custom properties, and sets
+   `left` to that section's own horizontal center so it originates from
+   wherever was actually clicked rather than always the banana's middle. */
+.peel-strip-bit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 22px;
+  border-radius: 40% 40% 50% 50%;
+  background: var(--food-color);
+  pointer-events: none;
+  z-index: 3;
+  animation: peel-strip-fly 0.5s ease-out forwards;
+}
+@keyframes peel-strip-fly {
+  0%   { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--peel-dx, 40px)), calc(-50% + var(--peel-dy, -40px))) rotate(var(--peel-rot, 45deg)) scale(0.6); }
+}
+
+/* Immediate per-section verdict ("Fresh!"/"Spotted"/"Rotten!") floating up
+   from whichever third was just peeled — see spawnQualityLabel() /
+   SECTION_QUALITY in js/minigames/peel.js. Its own color comes from that
+   lookup table via an inline style, same reasoning as the sepia filter on
+   the flesh layers: this is data-driven per roll, not something a CSS
+   class alone could express. */
+.peel-quality-label {
+  position: absolute;
+  top: 38%;
+  transform: translate(-50%, 0);
+  font-weight: 800;
+  font-size: 13px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 4;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  animation: peel-quality-float 1.3s ease-out forwards;
+}
+@keyframes peel-quality-float {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(0.7); }
+  15%  { opacity: 1; transform: translate(-50%, -6px) scale(1.1); }
+  75%  { opacity: 1; transform: translate(-50%, -18px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -30px) scale(0.95); }
+}
+
 /* ---------- mini-game cooldown ---------- */
 .cooldown-msg {
   font-weight: 700;
