@@ -314,13 +314,18 @@ it would have squashed/letterboxed a portrait figure. `buildItemEl()`
 stretches just the pet's own `<img>` taller by `MONKEY_HEIGHT_RATIO`
 (140/96) to compensate, so the rendered box ends up pixel-for-pixel the
 same shape as `#pet-visual`. Once placed, it wanders to a new random spot
-on its own every so often, and only rarely drops a free Banana 🍌 — a small
-`MONKEY_BANANA_CHANCE` per tick (up to 2 on the floor at a time), deliberately
-kept low so free food stays an occasional bonus rather than something to
-farm; each banana is worth a modest 4 food, less than most bought food
-items. Both the wandering and the banana drops run on their own timer,
-independent of the pet's own AI loop, so it keeps doing its thing even
-while the pet is asleep (see `monkeyTick()` in [js/main.js](js/main.js)). Only one placed
+on its own every so often, and only rarely drops a free treat 🍌 — a small
+`MONKEY_BANANA_CHANCE` per tick (up to 2 on the floor at a time, counting
+any combination of its possible drops — see `MONKEY_DROP_IDS`/`monkeyTick()`
+in [js/main.js](js/main.js)), deliberately kept low so free food/drink stays
+an occasional bonus rather than something to farm. The plain Monkey always
+drops a banana (worth a modest 4 food, less than most bought food); the two
+room-exclusive variants instead have a 50/50 chance each time of dropping
+their own themed drink — Beach Monkey drops Wine, Ice Monkey drops Hokkaido
+Milk — rather than a banana (`monkeyDropId()`, same file). Both the
+wandering and the drops run on their own timer, independent of the pet's
+own AI loop, so it keeps doing its thing even while the pet is asleep. Only
+one placed
 pet is treated as "the" active one at a time (whichever comes first in
 `state.roomItems`) — if you place more than one, the rest just sit there
 as oversized decoration until
@@ -411,8 +416,8 @@ know or care which outfit is equipped.
 
 A fourth shop tab, **Travel** 🗺️, works exactly like Outfit/Hair/Ears —
 buy a room once, then equip whichever one you own. Three exist for now:
-the free starting **Cozy Room**, **Island** ($100), and **Snowy Japan**
-($100). Switching rooms changes the wall/floor look (`setRoomTheme()` in
+the free starting **Cozy Room**, **Island** ($600), and **Snowy Japan**
+($1500). Switching rooms changes the wall/floor look (`setRoomTheme()` in
 [js/room.js](js/room.js), driven by `[data-theme]` CSS overrides in
 [css/style.css](css/style.css)) — the pet, its stats, and anything placed
 in the room stay exactly as they were. There's no separate scene state per
@@ -691,7 +696,7 @@ than each game charging it itself, so a new game gets this for free.
   one exception is the very first frame, before any note's been judged yet,
   which starts on the neutral idle pose (`setIdle()`, same file).
 
-**Lucky Spin has a cooldown before it can be played again — 3 minutes**
+**Lucky Spin has a cooldown before it can be played again — 30 seconds**
 (`cooldownMs` on its entry in the `GAMES` list in
 [js/minigames/index.js](js/minigames/index.js)); the other six currently
 have none and can be replayed immediately (`cooldownMs` just omitted —

@@ -19,15 +19,15 @@ export const ITEMS = {
   steak:        { id: 'steak', name: 'Steak', icon: '🥩', price: 45, category: 'food', effect: { food: 25, love: 4 } },
   // Unlockable food, gated the same way the beach/ice monkeys are (see
   // requiresRoom above) — only buyable once you own the matching room.
-  coconut:      { id: 'coconut', name: 'Coconut', icon: '🥥', price: 16, category: 'food', effect: { food: 10, fun: 10 }, requiresRoom: 'room_island' },
+  coconut:      { id: 'coconut', name: 'Coconut', icon: '🥥', price: 16, category: 'food', effect: { food: 10, water: 5 }, requiresRoom: 'room_island' },
   sushi:        { id: 'sushi', name: 'Sushi', icon: '🍣', price: 28, category: 'food', effect: { food: 15, love: 3, fun: 10 }, requiresRoom: 'room_snow' },
 
-  water_bottle: { id: 'water_bottle', name: 'Water', icon: '💧', price: 4, category: 'water', effect: { water: 20 } },
-  juice:        { id: 'juice', name: 'Juice', icon: '🧃', price: 8, category: 'water', effect: { water: 25, fun: 5 } },
+  water_bottle: { id: 'water_bottle', name: 'Water', icon: '💧', price: 4, category: 'water', effect: { water: 15 } },
+  juice:        { id: 'juice', name: 'Juice', icon: '🧃', price: 8, category: 'water', effect: { water: 20, fun: 5 } },
   // A negative component costs that stat instead of restoring it (coffee's
   // dehydration, wine's) — applied as an instant cost the moment it's
   // picked up rather than sipped gradually, see goDrink() in js/main.js.
-  coffee:       { id: 'coffee', name: 'Coffee', icon: '☕', price: 10, category: 'water', effect: { water: -5, sleep: 20 } },
+  coffee:       { id: 'coffee', name: 'Coffee', icon: '☕', price: 10, category: 'water', effect: { water: -3, sleep: 20 } },
   water_gallon: { id: 'water_gallon', name: 'Gallon of Water', icon: '🚰', price: 14, category: 'water', effect: { water: 40 } },
   wine:         { id: 'wine', name: 'Wine', icon: '🍷', price: 25, category: 'water', effect: { water: -5, love: 8 }, requiresRoom: 'room_island' },
   hokkaido_milk: { id: 'hokkaido_milk', name: 'Hokkaido Milk', icon: '🥛', price: 20, category: 'water', effect: { water: 15, health: 10, food: 5 }, requiresRoom: 'room_snow' },
@@ -114,8 +114,8 @@ export const ITEMS = {
   // at a time, same "buy once, equip any owned one" mechanism as body/hair/
   // ears — see setRoomTheme() in js/room.js.
   room_normal:  { id: 'room_normal', name: 'Cozy Room', icon: '🏠', price: 0, category: 'room' },
-  room_island:  { id: 'room_island', name: 'Island', icon: '🏝️', price: 100, category: 'room' },
-  room_snow:    { id: 'room_snow', name: 'Snowy Japan', icon: '⛩️', price: 100, category: 'room' },
+  room_island:  { id: 'room_island', name: 'Island', icon: '🏝️', price: 600, category: 'room' },
+  room_snow:    { id: 'room_snow', name: 'Snowy Japan', icon: '⛩️', price: 1500, category: 'room' },
 };
 
 export function itemsByCategory(category) {

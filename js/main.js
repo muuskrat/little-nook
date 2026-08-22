@@ -468,31 +468,42 @@ function playWithMonkey(monkey) {
 
 // ---- the placed pet (monkey/beach monkey/ice monkey): unlike a
 // decoration, it wanders the room on its own and occasionally drops a free
-// banana. Runs on its own timer independent of the pet's AI loop/gating
+// treat. Runs on its own timer independent of the pet's AI loop/gating
 // (state.isSleeping etc.) — it keeps doing its thing regardless of what
 // the character is up to. ----
 const MONKEY_TICK_MS = 2200;
 const MONKEY_MOVE_CHANCE = 0.35;
 const MONKEY_BANANA_CHANCE = 0.01;
-const MONKEY_MAX_BANANAS = 2; // don't let free bananas pile up forever
+const MONKEY_MAX_DROPS = 2; // don't let free drops pile up forever
+// The plain monkey always drops a banana; the room-exclusive variants have
+// a 50/50 chance of dropping their own themed drink instead (still a
+// banana the other half the time).
+const MONKEY_DROP_IDS = { monkey_beach: 'wine', monkey_ice: 'hokkaido_milk' };
+
+function monkeyDropId(monkeyItemId) {
+  const themedId = MONKEY_DROP_IDS[monkeyItemId];
+  return themedId && Math.random() < 0.5 ? themedId : 'banana';
+}
 
 function monkeyTick() {
   if (monkeyPlayActive) return; // don't rebuild/reposition mid-reaction, see playWithMonkey()
   const monkey = findPet();
   if (!monkey) return;
 
-  // Banana-drop first, so it can never land mid-walk-animation and cut the
-  // move's transition/tilt short. Appends just the new banana element
+  // Drop first, so it can never land mid-walk-animation and cut the move's
+  // transition/tilt short. Appends just the new item element
   // (appendRoomItem) instead of a full renderRoomItems() rebuild — a
   // rebuild would recreate the monkey's own element too, and doing that
   // immediately before this same tick's possible moveMonkeyTo() call below
   // could eat that move's transition entirely (see moveMonkeyTo()'s
   // comment in room.js) and make the monkey appear to teleport.
-  const bananaCount = state.roomItems.filter((i) => i.kind === 'food' && i.itemId === 'banana').length;
-  if (bananaCount < MONKEY_MAX_BANANAS && Math.random() < MONKEY_BANANA_CHANCE) {
-    const banana = { uid: makeUid('banana'), kind: 'food', itemId: 'banana', x: monkey.x, y: monkey.y, effect: { ...ITEMS.banana.effect } };
-    state.roomItems.push(banana);
-    appendRoomItem(banana);
+  const dropCount = state.roomItems.filter((i) => i.itemId === 'banana' || i.itemId === 'wine' || i.itemId === 'hokkaido_milk').length;
+  if (dropCount < MONKEY_MAX_DROPS && Math.random() < MONKEY_BANANA_CHANCE) {
+    const dropId = monkeyDropId(monkey.itemId);
+    const dropItem = ITEMS[dropId];
+    const drop = { uid: makeUid(dropId), kind: dropItem.category, itemId: dropId, x: monkey.x, y: monkey.y, effect: { ...dropItem.effect } };
+    state.roomItems.push(drop);
+    appendRoomItem(drop);
     store.persist();
   }
 

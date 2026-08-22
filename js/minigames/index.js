@@ -16,7 +16,7 @@ import { mountShoeSniffGame } from './shoesniff.js';
 import { mountPeelBananaGame } from './peel.js';
 import { mountDanceGame } from './dance.js';
 
-const ROULETTE_COOLDOWN_MS = 3 * 60 * 1000;
+const ROULETTE_COOLDOWN_MS = 30 * 1000;
 
 // Playing takes real effort, regardless of which game or how it goes — a
 // flat cost applied once per session, the moment a game actually starts
