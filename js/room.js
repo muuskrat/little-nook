@@ -64,6 +64,7 @@ const MESS_ICONS = {
 // containing the exact same set of pose files. Picking the right image is
 // always "outfit folder + pose key" — see bodyPath() below. Face art
 // doesn't vary by outfit, only by mood.
+const FACE_DIR = 'assets/character/parts/face/';
 const SLEEP_FACE = 'assets/character/parts/face/face-sleeping.png';
 const SLEEP_POSE = 'sleeping';
 const MAD_FACE = 'assets/character/parts/face/face-mad.png';
@@ -227,14 +228,17 @@ let activePose = null; // 'resting' | 'sitting' | 'playing-alone' | null
 let tantrumActive = false;
 let tripPhase = null; // 'falling' | 'sitting' | null — see setTripPhase()
 let pettingPhase = null; // 'gentle' | 'tooMuch' | null — see setPettingFace()
+let clickReactionActive = false; // see playClickReaction()
+let clickReactionTimer = null;
 
 function refreshVisual() {
-  // A tantrum flash (see playTantrum) is a brief, deliberate override —
-  // don't let a persist()-triggered call from elsewhere (setSleepingVisual,
-  // setEmotionVisual, etc. all run on every store.persist()) stomp on it
+  // A tantrum flash (see playTantrum) or an in-progress click reaction (see
+  // playClickReaction()) are both brief, deliberate overrides — don't let a
+  // persist()-triggered call from elsewhere (setSleepingVisual,
+  // setEmotionVisual, etc. all run on every store.persist()) stomp on them
   // mid-animation. Whichever toggle changed still records its new value
-  // above; refreshVisual() just runs for real once the flash ends.
-  if (tantrumActive) return;
+  // above; refreshVisual() just runs for real once the flash/reaction ends.
+  if (tantrumActive || clickReactionActive) return;
   if (sleepingNow) {
     layerFace.src = SLEEP_FACE;
     layerBody.src = bodyPath(SLEEP_POSE);
@@ -306,6 +310,26 @@ export function playTantrum() {
     petVisual.classList.remove('tantrum-shake');
     refreshVisual();
   }, 800);
+}
+
+// Holds an arbitrary body pose + face pair for `ms`, then reverts to
+// whatever the normal pose/emotion would otherwise show — the same
+// guard-flag-then-revert shape playTantrum() uses, just for a caller-
+// supplied pose/face rather than one fixed pair, and re-armable: a second
+// call before the first one's `ms` is up (see triggerClickReaction() in
+// js/main.js, which owns the click-cycle/stage timing this drives) cancels
+// the pending revert and starts a fresh one instead of the two colliding.
+// `faceFile` is a bare filename (e.g. 'face-mad.png'), joined with
+// FACE_DIR here so main.js's stage table doesn't need to know the path.
+export function playClickReaction(bodyPose, faceFile, ms) {
+  clearTimeout(clickReactionTimer);
+  clickReactionActive = true;
+  layerBody.src = bodyPath(bodyPose);
+  layerFace.src = `${FACE_DIR}${faceFile}`;
+  clickReactionTimer = setTimeout(() => {
+    clickReactionActive = false;
+    refreshVisual();
+  }, ms);
 }
 
 // Quick recoil when scolded — turns sideways away from you, direction

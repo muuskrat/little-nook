@@ -127,6 +127,32 @@ identically instead of three near-duplicate copies).
   entirely if you weren't looking straight at the character when it
   happened.
 
+**Clicking the character with nothing armed** (no Pet/Play/Exercise/Scold
+button pressed first) plays a little 4-stage reaction cycle instead of doing
+nothing — purely cosmetic, no stat/coin effect either way. Each stage sets
+both a body pose and a face at once: neutral face + the "playing" body, then
+the exhausted face + "tripped," then a mad face + "tantrum," then a crying
+face + "sitting" (on the ground). A click only advances to the next stage if
+it lands within `CLICK_REACTION_WINDOW_MS` (3 seconds) of the *previous*
+click — otherwise the sequence restarts from the first stage — and that same
+window is also how long each stage's pose is actually held before easing
+back to normal, so there's a single number governing both "how long you have
+to click again" and "how long the current pose sticks around" rather than
+two separate timers that could drift apart. Once at the last stage, further
+clicks within the window just re-hold that same stage instead of advancing
+past it or wrapping back to the first — see `triggerClickReaction()` in
+[js/main.js](js/main.js). Every click also gives the character a little
+squeeze via the same `bumpPet()` scale-bounce Play/Exercise/petting already
+use. The whole thing is skipped while asleep, tripping, or mid-reaction with
+a placed pet — the same guard conditions `startPetting()` already checks —
+so it can never fight one of those other transient poses for the same
+`layerBody`/`layerFace` art. Under the hood, `playClickReaction()` in
+[js/room.js](js/room.js) generalizes the same guard-flag-then-revert shape
+`playTantrum()` already used for its one fixed pose/timing pair into one
+that takes an arbitrary body pose + face + hold duration, and is re-armable
+— a second call before the first one's hold is up cancels the pending revert
+and starts a fresh one, rather than the two colliding.
+
 The fourth sidebar button, **Move** 👣, is a toggle: clicking the floor only
 sends the pet walking there while Move is active (mutually exclusive with
 Decorate mode, since both change what a floor click does). The pet's own

@@ -11,7 +11,7 @@ import {
   showHeartParticle, renderRoomItems, appendRoomItem, removeRoomItem, ROOM_BOUNDS, setIdlePose, setMadVisual, playTantrum,
   stopWalking, setPettingVisual, setPettingFace, setTripPhase, playScoldFlinch, showMoneyParticle,
   flashMonkeyFallen, playMonkeySlide, isBeingCarried, moveMonkeyTo, setWatchingMonkeyVisual, setLoveFaceVisual,
-  setDayNightVisual,
+  setDayNightVisual, playClickReaction,
 } from './room.js';
 import { openShop } from './shop.js';
 import { openHelp } from './help.js';
@@ -1185,10 +1185,43 @@ function doScoldInteraction() {
   store.persist();
 }
 
+// ---- plain click (nothing armed): a little 4-stage reaction cycle, no
+// stats/coins involved, just for fun. Each stage sets both a body pose and a
+// face at once (see playClickReaction() in js/room.js); clicking again
+// within CLICK_REACTION_WINDOW_MS of the *previous* click advances to the
+// next stage, otherwise the sequence restarts from the first one. Once at
+// the last stage (sitting on the ground, crying), further clicks within the
+// window just re-hold that same stage rather than advancing past it or
+// wrapping back around — same window either way, since it's also how long
+// each stage's pose is actually shown before easing back to normal.
+const CLICK_REACTION_STAGES = [
+  { body: 'playing', face: 'face-neutral.png' },
+  { body: 'tripped', face: 'face-exhausted.png' },
+  { body: 'tantrum', face: 'face-mad.png' },
+  { body: 'sitting', face: 'face-crying.png' },
+];
+const CLICK_REACTION_WINDOW_MS = 3000;
+let clickReactionStage = 0; // 0 = no sequence in progress
+let lastClickReactionAt = 0;
+
+function triggerClickReaction() {
+  if (state.isSleeping || tripping || tripRecovering || monkeyPlayActive || petting) return;
+  const now = Date.now();
+  const withinWindow = now - lastClickReactionAt <= CLICK_REACTION_WINDOW_MS;
+  lastClickReactionAt = now;
+  clickReactionStage = withinWindow && clickReactionStage > 0
+    ? Math.min(clickReactionStage + 1, CLICK_REACTION_STAGES.length)
+    : 1;
+  const stage = CLICK_REACTION_STAGES[clickReactionStage - 1];
+  bumpPet();
+  playClickReaction(stage.body, stage.face, CLICK_REACTION_WINDOW_MS);
+}
+
 window.addEventListener('pet-clicked', () => {
   if (pendingInteraction === 'play') doPlayInteraction();
   else if (pendingInteraction === 'exercise') doExerciseInteraction();
   else if (pendingInteraction === 'scold') doScoldInteraction();
+  else if (!pendingInteraction) triggerClickReaction();
   // 'pet' is handled entirely by pet-pressed/mouseup above (a click alone,
   // with no hold, just ends the session with ~0 on the meter)
 });
@@ -1328,8 +1361,14 @@ document.getElementById('btn-dev-reset').addEventListener('click', () => {
   // "reset to 50" and make this button look broken.
   state.roomItems = state.roomItems.filter((i) => i.kind !== 'mess');
   renderRoomItems(state);
+  // Back to Day 1 too — same day-cycle fields defaultState() starts a
+  // brand-new save on (see js/state.js), so a mid-playthrough "reset" isn't
+  // left many days ahead of everything else it just reset.
+  state.dayNightElapsedMs = 0;
+  state.cyclePaused = false;
+  state.lastLandlordDay = 0;
   store.persist();
-  showToast('Bars reset to 50, messes cleared (dev)');
+  showToast('Bars reset to 50, messes cleared, day reset (dev)');
 });
 
 // ---- secret dev button: skip to the next in-game day, for testing ----
